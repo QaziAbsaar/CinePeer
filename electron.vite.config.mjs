@@ -7,6 +7,7 @@ export default defineConfig({
     plugins: [externalizeDepsPlugin()],
     build: {
       rollupOptions: {
+        // WebTorrent is a native module — must remain external
         external: ['webtorrent']
       }
     }

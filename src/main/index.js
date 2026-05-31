@@ -1,8 +1,147 @@
 const { app, BrowserWindow, ipcMain, shell, session } = require('electron')
 const path = require('path')
 const fs = require('fs')
-const { TorrentManager } = require('./torrent')
+const http = require('http')
 
+// WebTorrent is ESM-only — use dynamic import
+let WebTorrent = null
+async function getWebTorrent() {
+  if (!WebTorrent) WebTorrent = (await import('webtorrent')).default
+  return WebTorrent
+}
+
+// ── TorrentManager ──────────────────────────────────────────
+class TorrentManager {
+  constructor() {
+    this.client = null
+    this.streams = new Map()
+    this._initPromise = null
+  }
+
+  async _ensureClient() {
+    if (this.client) return
+    if (!this._initPromise) {
+      this._initPromise = (async () => {
+        const WT = await getWebTorrent()
+        this.client = new WT()
+      })()
+    }
+    return this._initPromise
+  }
+
+  async addTorrent(magnetUri) {
+    await this._ensureClient()
+    return new Promise((resolve, reject) => {
+      const timeout = setTimeout(() => {
+        reject(new Error('Torrent connection timed out after 30 seconds'))
+      }, 30000)
+
+      this.client.add(magnetUri, (torrent) => {
+        clearTimeout(timeout)
+        const file = torrent.files.reduce((a, b) => a.length > b.length ? a : b)
+        const server = http.createServer((req, res) => {
+          const range = req.headers.range
+          const fileSize = file.length
+          if (range) {
+            const parts = range.replace(/bytes=/, '').split('-')
+            const start = parseInt(parts[0], 10)
+            const end = parts[1] ? parseInt(parts[1], 10) : fileSize - 1
+            const chunkSize = end - start + 1
+            res.writeHead(206, {
+              'Content-Range': `bytes ${start}-${end}/${fileSize}`,
+              'Accept-Ranges': 'bytes',
+              'Content-Length': chunkSize,
+              'Content-Type': 'video/mp4',
+              'Access-Control-Allow-Origin': '*'
+            })
+            const stream = file.createReadStream({ start, end })
+            stream.pipe(res)
+          } else {
+            res.writeHead(200, {
+              'Content-Length': fileSize,
+              'Content-Type': 'video/mp4',
+              'Access-Control-Allow-Origin': '*'
+            })
+            file.createReadStream().pipe(res)
+          }
+        })
+        server.listen(0, () => {
+          const port = server.address().port
+          this.streams.set(torrent.infoHash, { server, torrent, port })
+          resolve({
+            streamUrl: `http://localhost:${port}`,
+            infoHash: torrent.infoHash,
+            fileName: file.name,
+            fileSize: file.length
+          })
+        })
+      })
+      this.client.on('error', (err) => {
+        clearTimeout(timeout)
+        reject(err)
+      })
+    })
+  }
+
+  async getProgress(infoHash) {
+    await this._ensureClient()
+    const entry = this.streams.get(infoHash)
+    if (!entry) return null
+    const { torrent } = entry
+    return {
+      progress: Math.round(torrent.progress * 100) / 100,
+      downloadSpeed: torrent.downloadSpeed,
+      uploadSpeed: torrent.uploadSpeed,
+      numPeers: torrent.numPeers,
+      downloaded: torrent.downloaded,
+      uploaded: torrent.uploaded,
+      timeRemaining: torrent.timeRemaining,
+      ratio: torrent.ratio
+    }
+  }
+
+  async destroyTorrent(infoHash) {
+    await this._ensureClient()
+    const entry = this.streams.get(infoHash)
+    if (!entry) return false
+    return new Promise((resolve) => {
+      entry.server.close(() => {
+        entry.torrent.destroy(() => {
+          this.streams.delete(infoHash)
+          resolve(true)
+        })
+      })
+    })
+  }
+
+  async listActive() {
+    await this._ensureClient()
+    const list = []
+    this.streams.forEach((entry, infoHash) => {
+      list.push({
+        infoHash,
+        name: entry.torrent.name,
+        progress: Math.round(entry.torrent.progress * 100) / 100,
+        downloadSpeed: entry.torrent.downloadSpeed,
+        numPeers: entry.torrent.numPeers,
+        port: entry.port
+      })
+    })
+    return list
+  }
+
+  async destroyAll() {
+    await this._ensureClient()
+    this.streams.forEach((entry) => {
+      entry.server.close()
+      entry.torrent.destroy()
+    })
+    this.streams.clear()
+    this.client.destroy()
+  }
+}
+
+// ── Main Process ───────────────────────────────────────────
 let mainWindow = null
 let torrentManager = null
 
@@ -32,13 +171,11 @@ function createWindow() {
     mainWindow.show()
   })
 
-  // Open external links in browser
   mainWindow.webContents.setWindowOpenHandler(({ url }) => {
     shell.openExternal(url)
     return { action: 'deny' }
   })
 
-  // Dev or production URL
   if (process.env['ELECTRON_RENDERER_URL']) {
     mainWindow.loadURL(process.env['ELECTRON_RENDERER_URL'])
   } else {
@@ -73,7 +210,7 @@ function registerIPC() {
   })
 
   ipcMain.handle('torrent:progress', async (_, infoHash) => {
-    return torrentManager.getProgress(infoHash)
+    return await torrentManager.getProgress(infoHash)
   })
 
   ipcMain.handle('torrent:destroy', async (_, infoHash) => {
@@ -81,7 +218,7 @@ function registerIPC() {
   })
 
   ipcMain.handle('torrent:list', async () => {
-    return torrentManager.listActive()
+    return await torrentManager.listActive()
   })
 
   ipcMain.handle('system:getDownloadPath', () => {
@@ -94,12 +231,11 @@ function registerIPC() {
 
   ipcMain.handle('system:openFolder', async (_, folderPath) => {
     try {
-      // Ensure the directory exists before opening
       const dir = path.dirname(folderPath)
       if (!fs.existsSync(dir)) {
         fs.mkdirSync(dir, { recursive: true })
       }
-      shell.openPath(folderPath)
+      await shell.openPath(folderPath)
       return true
     } catch {
       return false
@@ -126,9 +262,9 @@ app.whenReady().then(() => {
   })
 })
 
-app.on('window-all-closed', () => {
+app.on('window-all-closed', async () => {
   if (torrentManager) {
-    torrentManager.destroyAll()
+    await torrentManager.destroyAll()
   }
   if (process.platform !== 'darwin') {
     app.quit()
