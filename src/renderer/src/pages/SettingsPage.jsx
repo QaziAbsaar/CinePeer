@@ -190,7 +190,7 @@ export default function SettingsPage() {
               className="input-field"
               value={downloadPath}
               readOnly
-              placeholder="Default: ~/Downloads/StreamVault"
+              placeholder="Default: ~/Downloads/CinePeer"
               id="download-path-input"
             />
             <button
@@ -295,7 +295,7 @@ export default function SettingsPage() {
 
         {/* About */}
         <section className="settings-section glass-card settings-about">
-          <h2 className="settings-section-title gradient-text">StreamVault</h2>
+          <h2 className="settings-section-title gradient-text">CinePeer</h2>
           <p className="text-meta">Version 1.0.0</p>
           <p className="settings-source-status">
             <span className={`source-dot ${isUsingOmdb() ? 'omdb' : 'tmdb'}`} />

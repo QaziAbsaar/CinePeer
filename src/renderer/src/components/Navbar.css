@@ -130,3 +130,40 @@
   animation: pulseGlow 2s ease-in-out infinite;
   box-shadow: 0 0 8px rgba(233, 69, 96, 0.5);
 }
+
+/* ── Frameless — Full Custom Titlebar ─────────────────────── */
+.navbar-frameless {
+  top: 0;
+  -webkit-app-region: drag;
+  app-region: drag;
+}
+
+/* Custom window controls — top-right of navbar ────────────── */
+.window-controls {
+  display: flex;
+  align-items: center;
+  height: 100%;
+  margin-left: 8px;
+  flex-shrink: 0;
+}
+
+.win-btn {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 36px;
+  height: 100%;
+  color: var(--text-secondary);
+  transition: background var(--duration-fast) var(--ease-out),
+              color var(--duration-fast) var(--ease-out);
+}
+
+.win-btn:hover {
+  background: rgba(255, 255, 255, 0.08);
+  color: var(--text-primary);
+}
+
+.win-btn-close:hover {
+  background: #e81123;
+  color: #fff;
+}

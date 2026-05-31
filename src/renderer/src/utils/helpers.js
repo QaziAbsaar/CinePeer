@@ -1,5 +1,5 @@
 /**
- * Utility helpers for the StreamVault renderer process.
+ * Utility helpers for the CinePeer renderer process.
  * Re-exports formatting utilities from constants for convenience,
  * plus additional app-wide helper functions.
  */

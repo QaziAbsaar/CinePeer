@@ -7,7 +7,7 @@
 import axios from 'axios'
 
 const OS_BASE_URL = 'https://api.opensubtitles.com/api/v1'
-const OS_USER_AGENT = 'StreamVault v1.0'
+const OS_USER_AGENT = 'CinePeer v1.0'
 
 let _apiKey = ''
 

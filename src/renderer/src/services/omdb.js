@@ -38,7 +38,7 @@ omdb.interceptors.response.use(
     console.error('[OMDB]', error.response?.status, error.message)
     throw error
   }
-}
+)
 
 /**
  * Map an OMDB movie/series object to TMDB-compatible shape.

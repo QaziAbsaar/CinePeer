@@ -1,6 +1,6 @@
 .search-overlay {
   position: fixed;
-  top: calc(var(--titlebar-height) + var(--nav-height));
+  top: var(--navbar-offset, calc(var(--titlebar-height) + var(--nav-height)));
   left: 0;
   right: 0;
   bottom: 0;

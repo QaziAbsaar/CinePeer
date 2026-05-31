@@ -1,4 +1,4 @@
-const { app, BrowserWindow, ipcMain, shell, session } = require('electron')
+const { app, BrowserWindow, ipcMain, shell, session, Menu, nativeImage } = require('electron')
 const path = require('path')
 const fs = require('fs')
 const http = require('http')
@@ -146,18 +146,14 @@ let mainWindow = null
 let torrentManager = null
 
 function createWindow() {
-  mainWindow = new BrowserWindow({
+  const windowOptions = {
     width: 1400,
     height: 900,
     minWidth: 1024,
     minHeight: 680,
     backgroundColor: '#0F0F0F',
+    frame: false,
     titleBarStyle: 'hidden',
-    titleBarOverlay: {
-      color: '#0F0F0F',
-      symbolColor: '#EAEAEA',
-      height: 36
-    },
     webPreferences: {
       preload: path.join(__dirname, '../preload/index.js'),
       nodeIntegration: false,
@@ -165,7 +161,12 @@ function createWindow() {
       sandbox: false
     },
     show: false
-  })
+  }
+
+  mainWindow = new BrowserWindow(windowOptions)
+
+  // Remove default menu bar (File, Edit, View, Help)
+  Menu.setApplicationMenu(null)
 
   mainWindow.on('ready-to-show', () => {
     mainWindow.show()
@@ -193,9 +194,9 @@ function setupCSP() {
           "script-src 'self' 'unsafe-inline'; " +
           "style-src 'self' 'unsafe-inline' https://fonts.googleapis.com; " +
           "font-src 'self' https://fonts.gstatic.com; " +
-          "img-src 'self' data: https://image.tmdb.org https://img.yts.mx; " +
+          "img-src 'self' data: https://image.tmdb.org https://img.yts.mx https://m.media-amazon.com; " +
           "media-src 'self' http://localhost:*; " +
-          "connect-src 'self' https://api.themoviedb.org https://yts.mx https://eztv.re http://localhost:*;"
+          "connect-src 'self' https://api.themoviedb.org https://yts.mx https://eztv.re https://www.omdbapi.com http://localhost:*;"
         ]
       }
     })
@@ -222,7 +223,7 @@ function registerIPC() {
   })
 
   ipcMain.handle('system:getDownloadPath', () => {
-    return path.join(app.getPath('downloads'), 'StreamVault')
+    return path.join(app.getPath('downloads'), 'CinePeer')
   })
 
   ipcMain.handle('system:getUserDataPath', () => {
@@ -248,6 +249,17 @@ function registerIPC() {
     })
     return result.canceled ? null : result.filePaths[0]
   })
+
+  // ── Window controls (for frameless Linux) ────────────────
+  ipcMain.on('window:minimize', () => mainWindow?.minimize())
+  ipcMain.on('window:maximize', () => {
+    if (mainWindow?.isMaximized()) {
+      mainWindow.unmaximize()
+    } else {
+      mainWindow?.maximize()
+    }
+  })
+  ipcMain.on('window:close', () => mainWindow?.close())
 }
 
 app.whenReady().then(() => {
