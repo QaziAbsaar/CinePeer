@@ -53,31 +53,40 @@ async function withFallback(tmdbFn, omdbFn) {
 
 // ── Public API — mirrors tmdb.js exports ───────────────────
 
+// OMDB cannot do discovery (no trending/genre endpoints).
+// These broad keyword searches give semi-useful fallback results.
+const OMDB_QUERIES = ['avengers', 'inception', 'matrix', 'dark', 'fast', 'rings', 'pirates', 'bourne', 'mission', 'jurassic']
+
+function omdbFallbackQuery(page = 1) {
+  const idx = Math.min(page - 1, OMDB_QUERIES.length - 1)
+  return omdb.searchOmdb(OMDB_QUERIES[idx], page)
+}
+
 export async function getTrending(mediaType = 'all', timeWindow = 'week') {
   return withFallback(
     () => tmdb.getTrending(mediaType, timeWindow),
-    () => omdb.searchOmdb('2024', 1) // OMDB has no trending — show recent movies
+    () => omdbFallbackQuery(1)
   )
 }
 
 export async function getPopularMovies(page = 1) {
   return withFallback(
     () => tmdb.getPopularMovies(page),
-    () => omdb.searchOmdb('2024', page)
+    () => omdbFallbackQuery(page)
   )
 }
 
 export async function getTopRatedMovies(page = 1) {
   return withFallback(
     () => tmdb.getTopRatedMovies(page),
-    () => omdb.searchOmdb('2024', page)
+    () => omdbFallbackQuery(page)
   )
 }
 
 export async function getNowPlayingMovies(page = 1) {
   return withFallback(
     () => tmdb.getNowPlayingMovies(page),
-    () => omdb.searchOmdb('2024', page)
+    () => omdbFallbackQuery(page)
   )
 }
 
@@ -91,28 +100,28 @@ export async function getUpcomingMovies(page = 1) {
 export async function getPopularTV(page = 1) {
   return withFallback(
     () => tmdb.getPopularTV(page),
-    () => omdb.searchOmdb('2024', 1) // Same limitation — OMDB has no TV discovery
+    () => omdb.searchOmdb('breaking', 1)
   )
 }
 
 export async function getTopRatedTV(page = 1) {
   return withFallback(
     () => tmdb.getTopRatedTV(page),
-    () => omdb.searchOmdb('2024', 1)
+    () => omdb.searchOmdb('game', 1)
   )
 }
 
 export async function getOnTheAirTV(page = 1) {
   return withFallback(
     () => tmdb.getOnTheAirTV(page),
-    () => omdb.searchOmdb('2024', 1)
+    () => omdb.searchOmdb('stranger', 1)
   )
 }
 
 export async function discoverByGenre(mediaType, genreId, page = 1) {
   return withFallback(
     () => tmdb.discoverByGenre(mediaType, genreId, page),
-    () => omdb.searchOmdb('2024', page)
+    () => omdbFallbackQuery(page)
   )
 }
 
