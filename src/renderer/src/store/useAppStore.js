@@ -1,15 +1,22 @@
 import { create } from 'zustand'
 
 function hasValidKey() {
-  return !!localStorage.getItem('sv_tmdb_api_key') || !!localStorage.getItem('sv_omdb_api_key')
+  return !!localStorage.getItem('sv_omdb_api_key')
 }
 
 const useAppStore = create((set, get) => ({
-  // ── TMDB API Key ──────────────────────────────────────────
-  tmdbApiKey: localStorage.getItem('sv_tmdb_api_key') || '',
-  setTmdbApiKey: (key) => {
-    localStorage.setItem('sv_tmdb_api_key', key)
-    set({ tmdbApiKey: key, isSetupComplete: hasValidKey() || !!key })
+  // ── OMDB API Key ──────────────────────────────────────────
+  omdbApiKey: localStorage.getItem('sv_omdb_api_key') || '',
+  setOmdbApiKey: (key) => {
+    localStorage.setItem('sv_omdb_api_key', key)
+    set({ omdbApiKey: key, isSetupComplete: hasValidKey() || !!key })
+  },
+
+  // ── Fanart.tv API Key ─────────────────────────────────────
+  fanartApiKey: localStorage.getItem('sv_fanart_api_key') || '',
+  setFanartApiKey: (key) => {
+    localStorage.setItem('sv_fanart_api_key', key)
+    set({ fanartApiKey: key })
   },
 
   // ── Setup state ───────────────────────────────────────────
@@ -57,13 +64,6 @@ const useAppStore = create((set, get) => ({
   setSubtitleEnabled: (enabled) => {
     localStorage.setItem('sv_subtitle_enabled', String(enabled))
     set({ subtitleEnabled: enabled })
-  },
-
-  // ── Metadata Source (OMDB fallback) ────────────────────────
-  omdbApiKey: localStorage.getItem('sv_omdb_api_key') || '',
-  setOmdbApiKey: (key) => {
-    localStorage.setItem('sv_omdb_api_key', key)
-    set({ omdbApiKey: key, isSetupComplete: hasValidKey() || !!key })
   },
 
   // ── UI State ──────────────────────────────────────────────

@@ -1,9 +1,8 @@
 import { useState } from 'react'
-import { Settings, Key, FolderOpen, Monitor, Globe, Check, AlertCircle, Gauge, Subtitles } from 'lucide-react'
+import { Settings, Key, Image, FolderOpen, Monitor, Globe, Check, AlertCircle, Gauge, Subtitles } from 'lucide-react'
 import useAppStore from '../store/useAppStore'
-import { validateApiKey, validateOmdbKey } from '../services/metadata'
+import { validateOmdbKey, validateFanartKey } from '../services/metadata'
 import { validateOsApiKey } from '../services/opensubtitles'
-import { isUsingOmdb } from '../services/metadata'
 import { QUALITY_OPTIONS } from '../utils/constants'
 import useToastStore from '../store/useToastStore'
 import './SettingsPage.css'
@@ -18,36 +17,56 @@ const BANDWIDTH_OPTIONS = [
 
 export default function SettingsPage() {
   const {
-    tmdbApiKey, setTmdbApiKey,
+    omdbApiKey, setOmdbApiKey,
+    fanartApiKey, setFanartApiKey,
     defaultQuality, setDefaultQuality,
     downloadPath, setDownloadPath,
     ytsBaseUrl, setYtsBaseUrl,
     maxDownloadSpeed, setMaxDownloadSpeed,
-    opensubtitlesApiKey, setOpensubtitlesApiKey,
-    omdbApiKey, setOmdbApiKey
+    opensubtitlesApiKey, setOpensubtitlesApiKey
   } = useAppStore()
   const addToast = useToastStore((s) => s.addToast)
 
-  const [apiKeyInput, setApiKeyInput] = useState(tmdbApiKey)
-  const [validating, setValidating] = useState(false)
-  const [validationResult, setValidationResult] = useState(null) // null | 'success' | 'error'
+  const [omdbKeyInput, setOmdbKeyInput] = useState(omdbApiKey)
+  const [omdbValidating, setOmdbValidating] = useState(false)
+  const [omdbValidationResult, setOmdbValidationResult] = useState(null)
+
+  const [fanartKeyInput, setFanartKeyInput] = useState(fanartApiKey)
+  const [fanartValidating, setFanartValidating] = useState(false)
+  const [fanartValidationResult, setFanartValidationResult] = useState(null)
+
   const [subtitleKeyInput, setSubtitleKeyInput] = useState(opensubtitlesApiKey)
   const [subtitleValidating, setSubtitleValidating] = useState(false)
   const [subtitleValidationResult, setSubtitleValidationResult] = useState(null)
 
-  const handleValidateAndSave = async () => {
-    if (!apiKeyInput.trim()) return
-    setValidating(true)
-    setValidationResult(null)
-
-    const isValid = await validateApiKey(apiKeyInput.trim())
+  const handleOmdbValidate = async () => {
+    if (!omdbKeyInput.trim()) return
+    setOmdbValidating(true)
+    setOmdbValidationResult(null)
+    const isValid = await validateOmdbKey(omdbKeyInput.trim())
     if (isValid) {
-      setTmdbApiKey(apiKeyInput.trim())
-      setValidationResult('success')
+      setOmdbApiKey(omdbKeyInput.trim())
+      setOmdbValidationResult('success')
+      addToast('OMDb API key saved!', 'success')
     } else {
-      setValidationResult('error')
+      setOmdbValidationResult('error')
     }
-    setValidating(false)
+    setOmdbValidating(false)
+  }
+
+  const handleFanartValidate = async () => {
+    if (!fanartKeyInput.trim()) return
+    setFanartValidating(true)
+    setFanartValidationResult(null)
+    const isValid = await validateFanartKey(fanartKeyInput.trim())
+    if (isValid) {
+      setFanartApiKey(fanartKeyInput.trim())
+      setFanartValidationResult('success')
+      addToast('Fanart.tv API key saved!', 'success')
+    } else {
+      setFanartValidationResult('error')
+    }
+    setFanartValidating(false)
   }
 
   return (
@@ -57,81 +76,97 @@ export default function SettingsPage() {
           <Settings size={28} /> Settings
         </h1>
 
-        {/* TMDB API Key */}
+        {/* OMDb API Key */}
         <section className="settings-section glass-card">
           <div className="settings-section-header">
-            <Key size={20} />
+            <Globe size={20} />
             <div>
-              <h2 className="settings-section-title">TMDB API Key</h2>
-              <p className="text-meta">Required to fetch movie and TV show metadata, posters, and ratings.</p>
+              <h2 className="settings-section-title">OMDb API Key</h2>
+              <p className="text-meta">Required. Provides movie/TV metadata: titles, plot, ratings, and poster images.</p>
             </div>
           </div>
           <div className="settings-field-row">
             <input
               type="text"
               className="input-field"
-              placeholder="Enter your TMDB API key..."
-              value={apiKeyInput}
+              placeholder="Enter your OMDb API key..."
+              value={omdbKeyInput}
               onChange={(e) => {
-                setApiKeyInput(e.target.value)
-                setValidationResult(null)
+                setOmdbKeyInput(e.target.value)
+                setOmdbValidationResult(null)
               }}
-              id="tmdb-api-key-input"
+              id="omdb-api-key-input"
             />
             <button
               className="btn btn-primary"
-              onClick={handleValidateAndSave}
-              disabled={validating || !apiKeyInput.trim()}
+              onClick={handleOmdbValidate}
+              disabled={omdbValidating || !omdbKeyInput.trim()}
             >
-              {validating ? <div className="spinner" /> : 'Save & Validate'}
+              {omdbValidating ? <div className="spinner" /> : 'Save & Validate'}
             </button>
           </div>
-          {validationResult === 'success' && (
+          {omdbValidationResult === 'success' && (
             <div className="validation-msg success">
               <Check size={16} /> API key is valid and saved!
             </div>
           )}
-          {validationResult === 'error' && (
+          {omdbValidationResult === 'error' && (
             <div className="validation-msg error">
               <AlertCircle size={16} /> Invalid API key. Please check and try again.
             </div>
           )}
           <p className="settings-help text-small">
-            Get a free API key at{' '}
-            <a href="https://www.themoviedb.org/settings/api" target="_blank" rel="noreferrer" className="settings-link">
-              themoviedb.org/settings/api
+            Get a free key at{' '}
+            <a href="https://www.omdbapi.com/apikey.aspx" target="_blank" rel="noreferrer" className="settings-link">
+              omdbapi.com/apikey.aspx
             </a>
           </p>
         </section>
 
-        {/* OMDB API Key (temporary fallback) */}
+        {/* Fanart.tv API Key (optional, for high-res images) */}
         <section className="settings-section glass-card">
           <div className="settings-section-header">
-            <Globe size={20} />
+            <Image size={20} />
             <div>
-              <h2 className="settings-section-title">OMDB API Key (Fallback)</h2>
-              <p className="text-meta">
-                Temporary fallback while your TMDB account is being verified.
-                OMDB supports search + details only (no trending, genre discovery, or TV data).
-              </p>
+              <h2 className="settings-section-title">Fanart.tv API Key</h2>
+              <p className="text-meta">Optional. Adds high-resolution posters and backgrounds. Without this, OMDb thumbnails are used.</p>
             </div>
           </div>
           <div className="settings-field-row">
             <input
               type="text"
               className="input-field"
-              placeholder="Enter your OMDB API key..."
-              value={omdbApiKey}
-              onChange={(e) => setOmdbApiKey(e.target.value)}
-              id="omdb-api-key-input"
+              placeholder="Enter your Fanart.tv API key..."
+              value={fanartKeyInput}
+              onChange={(e) => {
+                setFanartKeyInput(e.target.value)
+                setFanartValidationResult(null)
+              }}
+              id="fanart-api-key-input"
             />
+            <button
+              className="btn btn-primary"
+              onClick={handleFanartValidate}
+              disabled={fanartValidating || !fanartKeyInput.trim()}
+            >
+              {fanartValidating ? <div className="spinner" /> : 'Save & Validate'}
+            </button>
           </div>
+          {fanartValidationResult === 'success' && (
+            <div className="validation-msg success">
+              <Check size={16} /> API key is valid and saved!
+            </div>
+          )}
+          {fanartValidationResult === 'error' && (
+            <div className="validation-msg error">
+              <AlertCircle size={16} /> Invalid API key. Please check and try again.
+            </div>
+          )}
           <p className="settings-help text-small">
             Get a free key at{' '}
-            <a href="https://www.omdbapi.com/apikey.aspx" target="_blank" rel="noreferrer" className="settings-link">
-              omdbapi.com/apikey.aspx
+            <a href="https://fanart.tv/get-an-api-key/" target="_blank" rel="noreferrer" className="settings-link">
+              fanart.tv/get-an-api-key/
             </a>
-            {' '}— then paste it above. The app will auto-detect and use it when TMDB is unavailable.
           </p>
         </section>
 
@@ -298,13 +333,8 @@ export default function SettingsPage() {
           <h2 className="settings-section-title gradient-text">CinePeer</h2>
           <p className="text-meta">Version 1.0.0</p>
           <p className="settings-source-status">
-            <span className={`source-dot ${isUsingOmdb() ? 'omdb' : 'tmdb'}`} />
-            Metadata: <strong>{isUsingOmdb() ? 'OMDB (fallback)' : 'TMDB'}</strong>
-            {isUsingOmdb() && (
-              <span className="text-small" style={{ display: 'block', marginTop: 4 }}>
-                Switch back when TMDB account is verified
-              </span>
-            )}
+            <span className="source-dot omdb" />
+            Metadata: <strong>OMDb + Fanart.tv</strong>
           </p>
           <p className="text-small" style={{ marginTop: 8 }}>
             A cinematic desktop streaming application. Built with Electron, React, and WebTorrent.

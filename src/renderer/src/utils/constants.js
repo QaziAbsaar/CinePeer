@@ -1,28 +1,10 @@
 // ── API URLs ──────────────────────────────────────────────
-export const TMDB_BASE_URL = 'https://api.themoviedb.org/3'
-export const TMDB_IMAGE_BASE = 'https://image.tmdb.org/t/p'
+export const FANART_BASE_URL = 'https://webservice.fanart.tv/v3'
 export const YTS_BASE_URL = 'https://yts.mx/api/v2'
 export const EZTV_BASE_URL = 'https://eztv.re/api'
 
-// ── Image Sizes ───────────────────────────────────────────
-export const IMAGE_SIZES = {
-  poster: {
-    small: 'w185',
-    medium: 'w342',
-    large: 'w500',
-    original: 'original'
-  },
-  backdrop: {
-    small: 'w780',
-    large: 'w1280',
-    original: 'original'
-  },
-  profile: {
-    small: 'w45',
-    medium: 'w185',
-    large: 'h632'
-  }
-}
+// ── Placeholder image (data-URI tiny dark placeholder) ────
+export const PLACEHOLDER_IMAGE = 'data:image/svg+xml,%3Csvg xmlns="http://www.w3.org/2000/svg" width="300" height="450" fill="%2312121A"%3E%3Crect width="300" height="450"/%3E%3Ctext x="50%25" y="50%25" fill="%2355556A" font-family="sans-serif" font-size="14" text-anchor="middle" dy=".3em"%3ENo Image%3C/text%3E%3C/svg%3E'
 
 // ── TMDB Genre Map ────────────────────────────────────────
 export const GENRES = {

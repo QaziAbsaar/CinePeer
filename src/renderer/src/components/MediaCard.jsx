@@ -1,6 +1,6 @@
 import { useState, useRef, useEffect } from 'react'
 import { Play, Plus, Check, Star } from 'lucide-react'
-import { getPosterUrl } from '../services/tmdb'
+import { getPosterUrl } from '../services/metadata'
 import useMediaStore from '../store/useMediaStore'
 import './MediaCard.css'
 
