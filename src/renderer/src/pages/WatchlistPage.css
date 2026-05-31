@@ -1,0 +1,16 @@
+.watchlist-empty {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  padding: 100px 20px;
+  color: var(--text-tertiary);
+  text-align: center;
+  gap: 16px;
+}
+
+.watchlist-empty h2 {
+  font-size: 1.3rem;
+  color: var(--text-secondary);
+  font-weight: 500;
+}

@@ -1,0 +1,23 @@
+.page-title {
+  font-size: 2.5rem;
+  letter-spacing: 0.08em;
+  margin-bottom: 20px;
+  color: var(--text-primary);
+}
+
+.empty-state {
+  text-align: center;
+  padding: 80px 20px;
+  color: var(--text-secondary);
+}
+
+.empty-state p:first-child {
+  font-size: 1.1rem;
+  color: var(--text-primary);
+  margin-bottom: 4px;
+}
+
+.scroll-sentinel {
+  height: 1px;
+  margin-top: 40px;
+}

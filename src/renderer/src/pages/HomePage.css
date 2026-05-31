@@ -1,0 +1,9 @@
+.home-page {
+  padding-top: 0; /* Hero banner handles top spacing */
+}
+
+.home-rows {
+  position: relative;
+  z-index: 2;
+  margin-top: -40px; /* Overlap with hero bottom gradient */
+}
