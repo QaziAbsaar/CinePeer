@@ -196,7 +196,7 @@ function setupCSP() {
           "font-src 'self' https://fonts.gstatic.com; " +
           "img-src 'self' data: https://img.yts.mx https://m.media-amazon.com https://assets.fanart.tv; " +
           "media-src 'self' http://localhost:*; " +
-          "connect-src 'self' https://www.omdbapi.com https://webservice.fanart.tv https://yts.mx https://eztv.re http://localhost:*;"
+          "connect-src 'self' https://www.omdbapi.com https://webservice.fanart.tv https://api.trakt.tv https://yts.mx https://eztv.re http://localhost:*;"
         ]
       }
     })

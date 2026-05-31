@@ -142,12 +142,71 @@ async function enrichWithFanart(item) {
   return item
 }
 
-// ── Discovery (keyword-based — OMDb has no trending/genre endpoints) ──
+// ── Trakt discovery (replaces OMDb keyword search for lists) ──
+// Trakt provides real trending/popular/top_rated data with IMDB IDs.
+// Those IMDB IDs are then enriched with Fanart.tv (HD images) and/or OMDb (poster fallback).
 
+import * as trakt from './trakt'
+
+export async function getTrending(mediaType = 'all', timeWindow = 'week') {
+  try {
+    if (mediaType === 'tv') return await trakt.getTrendingShows()
+    return await trakt.getTrendingMovies()
+  } catch {
+    // Fallback: OMDb keyword search if Trakt fails
+    return omdbFallbackPage(1, mediaType === 'tv' ? 'series' : 'movie')
+  }
+}
+
+export async function getPopularMovies(page = 1) {
+  try { return await trakt.getPopularMovies(page) }
+  catch { return omdbFallbackPage(page, 'movie') }
+}
+
+export async function getTopRatedMovies(page = 1) {
+  try { return await trakt.getTopRatedMovies(page) }
+  catch { return omdbFallbackPage(page, 'movie') }
+}
+
+export async function getNowPlayingMovies(page = 1) {
+  try { return await trakt.getTrendingMovies(page) }
+  catch { return omdbFallbackPage(page, 'movie') }
+}
+
+export async function getUpcomingMovies(page = 1) {
+  try { return await trakt.getPopularMovies(page) }
+  catch { return omdbFallbackPage(page, 'movie') }
+}
+
+export async function getPopularTV(page = 1) {
+  try { return await trakt.getPopularShows(page) }
+  catch { return omdbFallbackPage(page, 'series') }
+}
+
+export async function getTopRatedTV(page = 1) {
+  try { return await trakt.getTopRatedShows(page) }
+  catch { return omdbFallbackPage(page, 'series') }
+}
+
+export async function getOnTheAirTV(page = 1) {
+  try { return await trakt.getTrendingShows(page) }
+  catch { return omdbFallbackPage(page, 'series') }
+}
+
+export async function discoverByGenre(mediaType = 'movie', genreId, page = 1) {
+  try {
+    if (mediaType === 'tv') return await trakt.getPopularShows(page)
+    return await trakt.getPopularMovies(page)
+  } catch {
+    return omdbFallbackPage(page, mediaType === 'tv' ? 'series' : 'movie')
+  }
+}
+
+// ── OMDb keyword fallback (when Trakt is unavailable) ──
 const MOVIE_KEYWORDS = ['avengers', 'inception', 'matrix', 'dark', 'fast', 'rings', 'pirates', 'bourne', 'mission', 'jurassic']
 const TV_KEYWORDS    = ['breaking', 'game', 'stranger', 'sherlock', 'friends', 'simpsons', 'office', 'crown', 'mandalorian', 'witcher']
 
-async function searchByKeyword(keyword, page = 1, type = 'movie') {
+async function omdbKeywordSearch(keyword, page = 1, type = 'movie') {
   const key = getOmdbKey()
   if (!key) return { results: [], total_results: 0 }
   const cacheKey = `omdb_search_${type}_${keyword}_${page}`
@@ -157,49 +216,10 @@ async function searchByKeyword(keyword, page = 1, type = 'movie') {
   })
 }
 
-async function discoverPage(page = 1, type = 'movie') {
+async function omdbFallbackPage(page = 1, type = 'movie') {
   const pool = type === 'series' || type === 'tv' ? TV_KEYWORDS : MOVIE_KEYWORDS
   const idx = Math.min(page - 1, pool.length - 1)
-  return searchByKeyword(pool[idx], 1, type)
-}
-
-// ── Exported API (matches original TMDB service signatures) ──
-
-export async function getTrending(mediaType = 'all', timeWindow = 'week') {
-  return discoverPage(1, mediaType === 'tv' ? 'tv' : 'movie')
-}
-
-export async function getPopularMovies(page = 1) {
-  return discoverPage(page, 'movie')
-}
-
-export async function getTopRatedMovies(page = 1) {
-  return discoverPage(page, 'movie')
-}
-
-export async function getNowPlayingMovies(page = 1) {
-  return discoverPage(page, 'movie')
-}
-
-export async function getUpcomingMovies(page = 1) {
-  return searchByKeyword('2025', page, 'movie')
-}
-
-export async function getPopularTV(page = 1) {
-  return discoverPage(page, 'series')
-}
-
-export async function getTopRatedTV(page = 1) {
-  return discoverPage(page, 'series')
-}
-
-export async function getOnTheAirTV(page = 1) {
-  return discoverPage(page, 'series')
-}
-
-export async function discoverByGenre(mediaType = 'movie', genreId, page = 1) {
-  // OMDb has no genre filtering — return generic discovery results
-  return discoverPage(page, mediaType === 'tv' ? 'series' : 'movie')
+  return omdbKeywordSearch(pool[idx], 1, type)
 }
 
 // ── Search ────────────────────────────────────────────────
@@ -343,6 +363,22 @@ export async function validateFanartKey(key) {
   try {
     const data = await fanartApi.get('/movies/tt1375666', { params: { api_key: key } })
     return data !== null && !data.error
+  } catch {
+    return false
+  }
+}
+
+export async function validateTraktKey(clientId) {
+  try {
+    const data = await axios.get('https://api.trakt.tv/movies/trending', {
+      headers: {
+        'Content-Type': 'application/json',
+        'trakt-api-version': '2',
+        'trakt-api-key': clientId
+      },
+      timeout: 5000
+    })
+    return Array.isArray(data.data)
   } catch {
     return false
   }

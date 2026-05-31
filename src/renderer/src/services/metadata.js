@@ -30,5 +30,6 @@ export const getProfileUrl       = service.getProfileUrl
 export const validateApiKey      = service.validateApiKey
 export const validateOmdbKey     = service.validateOmdbKey
 export const validateFanartKey   = service.validateFanartKey
+export const validateTraktKey    = service.validateTraktKey
 export const getActiveSource     = service.getActiveSource
 export const isUsingOmdb         = service.isUsingOmdb

@@ -19,6 +19,13 @@ const useAppStore = create((set, get) => ({
     set({ fanartApiKey: key })
   },
 
+  // ── Trakt.tv Client ID ────────────────────────────────────
+  traktClientId: localStorage.getItem('sv_trakt_client_id') || '',
+  setTraktClientId: (id) => {
+    localStorage.setItem('sv_trakt_client_id', id)
+    set({ traktClientId: id })
+  },
+
   // ── Setup state ───────────────────────────────────────────
   isSetupComplete: hasValidKey(),
 

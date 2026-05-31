@@ -1,7 +1,7 @@
 import { useState } from 'react'
-import { Settings, Key, Image, FolderOpen, Monitor, Globe, Check, AlertCircle, Gauge, Subtitles } from 'lucide-react'
+import { Settings, Key, Image, FolderOpen, Monitor, Globe, Activity, Check, AlertCircle, Gauge, Subtitles } from 'lucide-react'
 import useAppStore from '../store/useAppStore'
-import { validateOmdbKey, validateFanartKey } from '../services/metadata'
+import { validateOmdbKey, validateFanartKey, validateTraktKey } from '../services/metadata'
 import { validateOsApiKey } from '../services/opensubtitles'
 import { QUALITY_OPTIONS } from '../utils/constants'
 import useToastStore from '../store/useToastStore'
@@ -19,6 +19,7 @@ export default function SettingsPage() {
   const {
     omdbApiKey, setOmdbApiKey,
     fanartApiKey, setFanartApiKey,
+    traktClientId, setTraktClientId,
     defaultQuality, setDefaultQuality,
     downloadPath, setDownloadPath,
     ytsBaseUrl, setYtsBaseUrl,
@@ -34,6 +35,10 @@ export default function SettingsPage() {
   const [fanartKeyInput, setFanartKeyInput] = useState(fanartApiKey)
   const [fanartValidating, setFanartValidating] = useState(false)
   const [fanartValidationResult, setFanartValidationResult] = useState(null)
+
+  const [traktKeyInput, setTraktKeyInput] = useState(traktClientId)
+  const [traktValidating, setTraktValidating] = useState(false)
+  const [traktValidationResult, setTraktValidationResult] = useState(null)
 
   const [subtitleKeyInput, setSubtitleKeyInput] = useState(opensubtitlesApiKey)
   const [subtitleValidating, setSubtitleValidating] = useState(false)
@@ -52,6 +57,21 @@ export default function SettingsPage() {
       setOmdbValidationResult('error')
     }
     setOmdbValidating(false)
+  }
+
+  const handleTraktValidate = async () => {
+    if (!traktKeyInput.trim()) return
+    setTraktValidating(true)
+    setTraktValidationResult(null)
+    const isValid = await validateTraktKey(traktKeyInput.trim())
+    if (isValid) {
+      setTraktClientId(traktKeyInput.trim())
+      setTraktValidationResult('success')
+      addToast('Trakt.tv Client ID saved!', 'success')
+    } else {
+      setTraktValidationResult('error')
+    }
+    setTraktValidating(false)
   }
 
   const handleFanartValidate = async () => {
@@ -167,6 +187,54 @@ export default function SettingsPage() {
             <a href="https://fanart.tv/get-an-api-key/" target="_blank" rel="noreferrer" className="settings-link">
               fanart.tv/get-an-api-key/
             </a>
+          </p>
+        </section>
+
+        {/* Trakt.tv Client ID */}
+        <section className="settings-section glass-card">
+          <div className="settings-section-header">
+            <Activity size={20} />
+            <div>
+              <h2 className="settings-section-title">Trakt.tv Client ID</h2>
+              <p className="text-meta">Required for Trending/Popular/Top-Rated discovery lists. Without this, OMDb keyword search is used (less accurate).</p>
+            </div>
+          </div>
+          <div className="settings-field-row">
+            <input
+              type="text"
+              className="input-field"
+              placeholder="Enter your Trakt.tv Client ID..."
+              value={traktKeyInput}
+              onChange={(e) => {
+                setTraktKeyInput(e.target.value)
+                setTraktValidationResult(null)
+              }}
+              id="trakt-client-id-input"
+            />
+            <button
+              className="btn btn-primary"
+              onClick={handleTraktValidate}
+              disabled={traktValidating || !traktKeyInput.trim()}
+            >
+              {traktValidating ? <div className="spinner" /> : 'Save & Validate'}
+            </button>
+          </div>
+          {traktValidationResult === 'success' && (
+            <div className="validation-msg success">
+              <Check size={16} /> Client ID is valid and saved!
+            </div>
+          )}
+          {traktValidationResult === 'error' && (
+            <div className="validation-msg error">
+              <AlertCircle size={16} /> Invalid Client ID. Please check and try again.
+            </div>
+          )}
+          <p className="settings-help text-small">
+            Create a Trakt.tv app at{' '}
+            <a href="https://trakt.tv/oauth/applications" target="_blank" rel="noreferrer" className="settings-link">
+              trakt.tv/oauth/applications
+            </a>
+            {' '}— copy the Client ID.
           </p>
         </section>
 
