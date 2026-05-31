@@ -1,4 +1,5 @@
 import { useState, useEffect, useRef, useCallback } from 'react'
+import { RefreshCw } from 'lucide-react'
 import { listMovies } from '../services/yts'
 import { getPosterUrl } from '../services/tmdb'
 import FilterBar from '../components/FilterBar'
@@ -12,6 +13,7 @@ export default function MoviesPage() {
   const [page, setPage] = useState(1)
   const [loading, setLoading] = useState(true)
   const [hasMore, setHasMore] = useState(true)
+  const [error, setError] = useState(false)
   const { filters } = useMediaStore()
   const sentinelRef = useRef(null)
   const fetchingRef = useRef(false)
@@ -20,7 +22,7 @@ export default function MoviesPage() {
   const fetchMovies = useCallback(async (pageNum, reset = false) => {
     if (fetchingRef.current) return
     fetchingRef.current = true
-    if (reset) setLoading(true)
+    if (reset) { setLoading(true); setError(false) }
 
     try {
       const params = {
@@ -60,6 +62,7 @@ export default function MoviesPage() {
     } catch (err) {
       console.error('Failed to fetch movies:', err)
       setHasMore(false)
+      if (reset) setError(true)
     } finally {
       setLoading(false)
       fetchingRef.current = false
@@ -104,6 +107,13 @@ export default function MoviesPage() {
             {Array.from({ length: 18 }).map((_, i) => (
               <SkeletonCard key={i} />
             ))}
+          </div>
+        ) : error ? (
+          <div className="error-state">
+            <p>Failed to load movies. Check your connection.</p>
+            <button className="btn btn-primary" onClick={() => fetchMovies(1, true)}>
+              <RefreshCw size={18} /> Retry
+            </button>
           </div>
         ) : movies.length === 0 ? (
           <div className="empty-state">

@@ -5,6 +5,7 @@ import DetailModal from './components/DetailModal'
 import DownloadManager from './components/DownloadManager'
 import SearchOverlay from './components/SearchOverlay'
 import ToastContainer from './components/Toast'
+import NetworkStatus from './components/NetworkStatus'
 import HomePage from './pages/HomePage'
 import MoviesPage from './pages/MoviesPage'
 import TVShowsPage from './pages/TVShowsPage'
@@ -22,6 +23,7 @@ export default function App() {
       <SearchOverlay />
       <DetailModal />
       <DownloadManager />
+      <NetworkStatus />
       <ToastContainer />
 
       {/* Routes */}

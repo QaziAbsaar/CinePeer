@@ -284,6 +284,31 @@
   font-size: 0.75rem;
 }
 
+/* ── Error State ────────────────────────────────────────── */
+.player-error-state {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.player-error-inner {
+  text-align: center;
+  color: var(--text-secondary);
+}
+
+.player-error-inner p:first-child {
+  font-size: 1.1rem;
+  color: var(--text-primary);
+  margin-bottom: 8px;
+}
+
+.player-error-actions {
+  display: flex;
+  gap: 12px;
+  justify-content: center;
+  margin-top: 20px;
+}
+
 /* ── Empty State ────────────────────────────────────────── */
 .player-empty {
   display: flex;

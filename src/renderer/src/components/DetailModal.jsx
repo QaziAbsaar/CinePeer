@@ -217,14 +217,24 @@ export default function DetailModal() {
                     <th>Quality</th>
                     {selectedMediaType === 'tv' && <th>Episode</th>}
                     <th>Size</th>
-                    <th>Seeds</th>
-                    <th>Peers</th>
+                    <th colSpan={2}>Health</th>
                     <th></th>
                   </tr>
                 </thead>
                 <tbody>
-                  {torrents.map((torrent, idx) => (
-                    <tr key={idx}>
+                  {torrents.map((torrent, idx) => {
+                    const seeds = torrent.seeds || 0
+                    const peers = torrent.peers || 0
+                    const health = seeds >= 100 ? 'excellent' : seeds >= 30 ? 'good' : seeds >= 5 ? 'okay' : seeds > 0 ? 'low' : 'dead'
+                    const healthColors = {
+                      excellent: '#00E676',
+                      good: '#00D4FF',
+                      okay: '#FFD700',
+                      low: '#FF9800',
+                      dead: '#E94560'
+                    }
+                    return (
+                    <tr key={idx} className={health === 'dead' ? 'torrent-row-dead' : ''}>
                       <td>
                         <span className="badge badge-quality">{torrent.quality || 'Unknown'}</span>
                       </td>
@@ -232,26 +242,36 @@ export default function DetailModal() {
                         <td>S{String(torrent.season || 0).padStart(2, '0')}E{String(torrent.episode || 0).padStart(2, '0')}</td>
                       )}
                       <td className="text-meta">{torrent.size || formatBytes(torrent.size_bytes || 0)}</td>
-                      <td className="seeds">{torrent.seeds || 0}</td>
-                      <td className="peers">{torrent.peers || 0}</td>
+                      <td>
+                        <span className="seed-count" style={{ color: healthColors[health] }}>
+                          {seeds}
+                        </span>
+                        <span className="text-meta" style={{ marginLeft: 2 }}>/ {peers}</span>
+                      </td>
+                      <td>
+                        <span className="health-dot" style={{ background: healthColors[health] }} />
+                        <span className="health-label text-meta">{health}</span>
+                      </td>
                       <td>
                         <button
-                          className="btn btn-primary btn-sm"
+                          className={`btn btn-sm ${health === 'dead' ? 'btn-secondary' : 'btn-primary'}`}
                           onClick={() => handleStream(torrent)}
                           disabled={streamingHash !== null}
+                          title={health === 'dead' ? 'No seeds available — stream may not start' : ''}
                         >
                           {streamingHash === (torrent.hash || idx) ? (
                             <div className="spinner" style={{ width: 14, height: 14 }} />
                           ) : (
                             <>
                               <Play size={14} fill="currentColor" />
-                              Stream
+                              {health === 'dead' ? 'Unavailable' : 'Stream'}
                             </>
                           )}
                         </button>
                       </td>
                     </tr>
-                  ))}
+                    )
+                  })}
                 </tbody>
               </table>
             ) : (

@@ -8,10 +8,22 @@ import './FeaturedBanner.css'
 export default function FeaturedBanner({ items = [] }) {
   const [currentIndex, setCurrentIndex] = useState(0)
   const [isTransitioning, setIsTransitioning] = useState(false)
+  const [loadedBackdrops, setLoadedBackdrops] = useState(new Set())
   const { setSelectedMedia } = useMediaStore()
 
   const validItems = items.filter(item => item.backdrop_path)
   const current = validItems[currentIndex]
+
+  // Preload backdrop images for smooth transitions
+  useEffect(() => {
+    validItems.forEach((item) => {
+      const url = getBackdropUrl(item.backdrop_path, 'original')
+      if (!url || loadedBackdrops.has(url)) return
+      const img = new Image()
+      img.onload = () => setLoadedBackdrops((prev) => new Set(prev).add(url))
+      img.src = url
+    })
+  }, [validItems])
 
   // Auto-rotate every 8 seconds
   useEffect(() => {

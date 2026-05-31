@@ -1,4 +1,5 @@
 import { create } from 'zustand'
+import { electronInvoke, isRunningInElectron } from '../utils/electron'
 
 const HISTORY_KEY = 'sv_download_history'
 
@@ -39,8 +40,13 @@ const useTorrentStore = create((set, get) => ({
         }
       }))
 
-      // Call Electron IPC to start torrent
-      const result = await window.electron.torrent.add(magnetUri)
+      // Call Electron IPC to start torrent (with browser fallback)
+      const result = await electronInvoke('torrent', 'add', [magnetUri], {
+        streamUrl: 'about:blank',
+        infoHash: 'dev-' + Date.now(),
+        fileName: title || 'Unknown',
+        fileSize: 0
+      })
 
       set((s) => {
         const torrents = { ...s.activeTorrents }
@@ -123,7 +129,7 @@ const useTorrentStore = create((set, get) => ({
 
   removeTorrent: async (infoHash) => {
     try {
-      await window.electron.torrent.destroy(infoHash)
+      await electronInvoke('torrent', 'destroy', [infoHash])
     } catch (e) {
       console.error('Failed to destroy torrent:', e)
     }
@@ -165,7 +171,7 @@ const useTorrentStore = create((set, get) => ({
 
     for (const hash of hashes) {
       try {
-        const progress = await window.electron.torrent.getProgress(hash)
+        const progress = await electronInvoke('torrent', 'getProgress', [hash])
         if (progress) {
           updateProgress(hash, progress)
         }

@@ -1,5 +1,5 @@
 import { useState, useEffect, useRef, useCallback } from 'react'
-import { ArrowLeft, Play, Pause, Volume2, VolumeX, Maximize, Minimize, SkipBack, SkipForward, Subtitles } from 'lucide-react'
+import { ArrowLeft, Play, Pause, Volume2, VolumeX, Maximize, Minimize, SkipBack, SkipForward, Subtitles, RefreshCw } from 'lucide-react'
 import { useNavigate } from 'react-router-dom'
 import useTorrentStore from '../store/useTorrentStore'
 import useAppStore from '../store/useAppStore'
@@ -23,18 +23,19 @@ const SUBTITLE_LANGUAGES = [
   { code: 'hi', label: 'Hindi' }
 ]
 
-// Track key so we can revoke and recreate
-let trackUrl = null
+// Module-level track URL for cleanup
+let _trackUrl = null
 
 export default function PlayerPage() {
   const navigate = useNavigate()
-  const { currentStream, pollProgress, activeTorrents } = useTorrentStore()
-  const { opensubtitlesApiKey, subtitleEnabled, subtitleLanguage, setSubtitleLanguage } = useAppStore()
+  const { currentStream, pollProgress, activeTorrents, removeTorrent } = useTorrentStore()
+  const { opensubtitlesApiKey, subtitleLanguage, setSubtitleLanguage } = useAppStore()
   const videoRef = useRef(null)
   const containerRef = useRef(null)
   const progressRef = useRef(null)
   const hideTimerRef = useRef(null)
-  const trackRef = useRef(null)
+  const wakeLockRef = useRef(null)
+  const mountedRef = useRef(true)
 
   const [isPlaying, setIsPlaying] = useState(false)
   const [isMuted, setIsMuted] = useState(false)
@@ -46,52 +47,96 @@ export default function PlayerPage() {
   const [buffering, setBuffering] = useState(true)
   const [torrentInfo, setTorrentInfo] = useState(null)
   const [showSubtitlePicker, setShowSubtitlePicker] = useState(false)
-  const [subtitlesLoaded, setSubtitlesLoaded] = useState(false)
   const [subtitleLoading, setSubtitleLoading] = useState(false)
-  const [showCC, setShowCC] = useState(subtitleEnabled)
+  const [showCC, setShowCC] = useState(true)
+  const [streamError, setStreamError] = useState(false)
 
-  // Auto-fetch subtitles when stream starts
+  // ── Cleanup on unmount ─────────────────────────────────────
+  useEffect(() => {
+    return () => {
+      mountedRef.current = false
+      // Release wake lock
+      if (wakeLockRef.current) {
+        wakeLockRef.current.release().catch(() => {})
+        wakeLockRef.current = null
+      }
+      // Revoke subtitle blob URL
+      if (_trackUrl) {
+        URL.revokeObjectURL(_trackUrl)
+        _trackUrl = null
+      }
+    }
+  }, [])
+
+  // ── Screen Wake Lock ───────────────────────────────────────
+  useEffect(() => {
+    if (!isPlaying) return
+    let cancelled = false
+
+    const requestWakeLock = async () => {
+      try {
+        if ('wakeLock' in navigator) {
+          const lock = await navigator.wakeLock.request('screen')
+          if (!cancelled) wakeLockRef.current = lock
+          else lock.release().catch(() => {})
+        }
+      } catch {
+        // Wake lock not supported or denied
+      }
+    }
+
+    requestWakeLock()
+
+    return () => {
+      cancelled = true
+      if (wakeLockRef.current) {
+        wakeLockRef.current.release().catch(() => {})
+        wakeLockRef.current = null
+      }
+    }
+  }, [isPlaying])
+
+  // ── Disable right-click on player container ───────────────
+  useEffect(() => {
+    const el = containerRef.current
+    if (!el) return
+    const preventCtx = (e) => e.preventDefault()
+    el.addEventListener('contextmenu', preventCtx)
+    return () => el.removeEventListener('contextmenu', preventCtx)
+  }, [])
+
+  // ── Auto-fetch subtitles when stream starts ────────────────
   useEffect(() => {
     if (!currentStream || !opensubtitlesApiKey || !currentStream.infoHash) return
 
     const fetchSubtitles = async () => {
-      // Try to get IMDB ID from the torrent's media info
       const imdbId = currentStream.imdb_id || currentStream.mediaInfo?.imdb_id
       if (!imdbId) return
 
       setSubtitleLoading(true)
       try {
-        const result = await searchSubtitles({
-          imdbId,
-          language: subtitleLanguage || 'en'
-        })
-
+        const result = await searchSubtitles({ imdbId, language: subtitleLanguage || 'en' })
         const subs = result?.data || []
         if (subs.length > 0) {
           const fileId = subs[0].attributes?.files?.[0]?.file_id
           if (fileId) {
             const webvtt = await downloadSubtitle(fileId)
-            if (webvtt) {
-              // Revoke old track URL
-              if (trackUrl) URL.revokeObjectURL(trackUrl)
-              trackUrl = webVttToDataUri(webvtt)
+            if (webvtt && mountedRef.current) {
+              if (_trackUrl) URL.revokeObjectURL(_trackUrl)
+              _trackUrl = webVttToDataUri(webvtt)
 
               const video = videoRef.current
               if (video) {
-                // Remove old track
                 const oldTrack = video.querySelector('track')
                 if (oldTrack) oldTrack.remove()
 
-                // Add new track
                 const track = document.createElement('track')
                 track.kind = 'subtitles'
                 track.label = subs[0].attributes?.language || 'English'
                 track.srclang = subtitleLanguage || 'en'
-                track.src = trackUrl
+                track.src = _trackUrl
                 track.default = showCC
-                trackRef.current = track
                 video.appendChild(track)
-                setSubtitlesLoaded(true)
               }
             }
           }
@@ -99,14 +144,14 @@ export default function PlayerPage() {
       } catch (e) {
         console.error('Subtitle fetch failed:', e)
       } finally {
-        setSubtitleLoading(false)
+        if (mountedRef.current) setSubtitleLoading(false)
       }
     }
 
     fetchSubtitles()
-  }, [currentStream, opensubtitlesApiKey]) // Only on stream change, not on language change
+  }, [currentStream, opensubtitlesApiKey])
 
-  // Handle subtitle language change (without re-fetching API)
+  // ── Handle subtitle language change ────────────────────────
   const changeSubtitleLanguage = useCallback(async (langCode) => {
     setSubtitleLanguage(langCode)
     setShowSubtitlePicker(false)
@@ -117,13 +162,13 @@ export default function PlayerPage() {
       const imdbId = currentStream.imdb_id || currentStream.mediaInfo?.imdb_id
       const result = await searchSubtitles({ imdbId, language: langCode })
       const subs = result?.data || []
-      if (subs.length > 0) {
+      if (subs.length > 0 && mountedRef.current) {
         const fileId = subs[0].attributes?.files?.[0]?.file_id
         if (fileId) {
           const webvtt = await downloadSubtitle(fileId)
           if (webvtt) {
-            if (trackUrl) URL.revokeObjectURL(trackUrl)
-            trackUrl = webVttToDataUri(webvtt)
+            if (_trackUrl) URL.revokeObjectURL(_trackUrl)
+            _trackUrl = webVttToDataUri(webvtt)
 
             const video = videoRef.current
             if (video) {
@@ -134,10 +179,9 @@ export default function PlayerPage() {
               track.kind = 'subtitles'
               track.label = subs[0].attributes?.language || langCode
               track.srclang = langCode
-              track.src = trackUrl
+              track.src = _trackUrl
               track.default = showCC
               video.appendChild(track)
-              setSubtitlesLoaded(true)
             }
           }
         }
@@ -145,24 +189,23 @@ export default function PlayerPage() {
     } catch (e) {
       console.error('Subtitle language change failed:', e)
     } finally {
-      setSubtitleLoading(false)
+      if (mountedRef.current) setSubtitleLoading(false)
     }
   }, [currentStream, setSubtitleLanguage, showCC])
 
-  // Toggle subtitles on/off
+  // ── Toggle subtitles ───────────────────────────────────────
   const toggleCC = useCallback(() => {
     const newVal = !showCC
     setShowCC(newVal)
     const video = videoRef.current
     if (video) {
-      const tracks = video.textTracks
-      for (let i = 0; i < tracks.length; i++) {
-        tracks[i].mode = newVal ? 'showing' : 'hidden'
+      for (let i = 0; i < (video.textTracks?.length || 0); i++) {
+        video.textTracks[i].mode = newVal ? 'showing' : 'hidden'
       }
     }
   }, [showCC])
 
-  // Poll torrent progress
+  // ── Poll torrent progress ──────────────────────────────────
   useEffect(() => {
     if (!currentStream) return
     const interval = setInterval(async () => {
@@ -173,7 +216,7 @@ export default function PlayerPage() {
     return () => clearInterval(interval)
   }, [currentStream, pollProgress, activeTorrents])
 
-  // Auto-hide controls
+  // ── Auto-hide controls ────────────────────────────────────
   const resetHideTimer = useCallback(() => {
     setShowControls(true)
     clearTimeout(hideTimerRef.current)
@@ -185,7 +228,7 @@ export default function PlayerPage() {
     }
   }, [isPlaying])
 
-  // Keyboard shortcuts
+  // ── Keyboard shortcuts ────────────────────────────────────
   useEffect(() => {
     const handleKey = (e) => {
       const video = videoRef.current
@@ -271,6 +314,12 @@ export default function PlayerPage() {
     return `${m}:${String(s).padStart(2, '0')}`
   }
 
+  // ── Handle stream error ────────────────────────────────────
+  const handleStreamError = () => {
+    setStreamError(true)
+    setBuffering(false)
+  }
+
   if (!currentStream) {
     return (
       <div className="player-empty">
@@ -282,12 +331,32 @@ export default function PlayerPage() {
     )
   }
 
+  if (streamError) {
+    return (
+      <div className="player-container player-error-state">
+        <div className="player-error-inner">
+          <p>Stream could not be loaded</p>
+          <p className="text-meta">The torrent may have no seeds or the connection failed.</p>
+          <div className="player-error-actions">
+            <button className="btn btn-primary" onClick={() => { setStreamError(false); videoRef.current?.load() }}>
+              <RefreshCw size={18} /> Retry
+            </button>
+            <button className="btn btn-secondary" onClick={() => { removeTorrent(currentStream.infoHash); navigate(-1) }}>
+              <ArrowLeft size={18} /> Go Back
+            </button>
+          </div>
+        </div>
+      </div>
+    )
+  }
+
   return (
     <div
       ref={containerRef}
       className={`player-container ${showControls ? '' : 'controls-hidden'}`}
       onMouseMove={resetHideTimer}
       onClick={resetHideTimer}
+      onContextMenu={(e) => e.preventDefault()}
       id="player-page"
     >
       {/* Video */}
@@ -301,11 +370,12 @@ export default function PlayerPage() {
         onTimeUpdate={() => setCurrentTime(videoRef.current?.currentTime || 0)}
         onLoadedMetadata={() => setDuration(videoRef.current?.duration || 0)}
         onWaiting={() => setBuffering(true)}
-        onCanPlay={() => setBuffering(false)}
+        onCanPlay={() => { setBuffering(false); setStreamError(false) }}
+        onError={handleStreamError}
       />
 
       {/* Buffering indicator */}
-      {buffering && (
+      {buffering && !streamError && (
         <div className="player-buffering">
           <div className="spinner" style={{ width: 40, height: 40, borderWidth: 3 }} />
           <span>Buffering...</span>
@@ -425,10 +495,7 @@ export default function PlayerPage() {
                     <div className="subtitle-picker glass-card" onClick={(e) => e.stopPropagation()}>
                       <div className="subtitle-picker-header">
                         <span>Subtitles</span>
-                        <button
-                          className={`subtitle-toggle ${showCC ? 'active' : ''}`}
-                          onClick={toggleCC}
-                        >
+                        <button className={`subtitle-toggle ${showCC ? 'active' : ''}`} onClick={toggleCC}>
                           {showCC ? 'On' : 'Off'}
                         </button>
                       </div>

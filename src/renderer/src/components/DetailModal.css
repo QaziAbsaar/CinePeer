@@ -160,3 +160,33 @@
   margin-bottom: 4px;
   color: var(--text-primary);
 }
+
+/* ── Torrent Health ─────────────────────────────────────── */
+.seed-count {
+  font-weight: 700;
+  font-size: 0.88rem;
+  font-variant-numeric: tabular-nums;
+}
+
+.health-dot {
+  display: inline-block;
+  width: 7px;
+  height: 7px;
+  border-radius: 50%;
+  margin-right: 5px;
+  vertical-align: middle;
+}
+
+.health-label {
+  font-size: 0.7rem;
+  text-transform: capitalize;
+  vertical-align: middle;
+}
+
+.torrent-row-dead td {
+  opacity: 0.5;
+}
+
+.torrent-row-dead .btn {
+  pointer-events: auto;
+}
