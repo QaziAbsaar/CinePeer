@@ -1,0 +1,30 @@
+{
+  "name": "streamvault",
+  "version": "1.0.0",
+  "description": "A cinematic desktop streaming application",
+  "main": "./out/main/index.js",
+  "author": "StreamVault",
+  "license": "MIT",
+  "scripts": {
+    "dev": "electron-vite dev",
+    "build": "electron-vite build",
+    "preview": "electron-vite preview",
+    "start": "electron-vite preview"
+  },
+  "dependencies": {
+    "react": "^18.3.1",
+    "react-dom": "^18.3.1",
+    "react-router-dom": "^6.26.0",
+    "zustand": "^4.5.4",
+    "axios": "^1.7.3",
+    "lucide-react": "^0.424.0",
+    "webtorrent": "^2.5.1"
+  },
+  "devDependencies": {
+    "@vitejs/plugin-react": "^4.3.1",
+    "electron": "^31.3.1",
+    "electron-vite": "^2.3.0",
+    "electron-builder": "^24.13.3",
+    "vite": "^5.4.0"
+  }
+}
