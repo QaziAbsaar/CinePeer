@@ -1,0 +1,162 @@
+/* ── Detail Header ──────────────────────────────────────── */
+.detail-header {
+  position: relative;
+  height: 340px;
+  background-size: cover;
+  background-position: center;
+  background-color: var(--bg-tertiary);
+}
+
+.detail-header-gradient {
+  position: absolute;
+  inset: 0;
+  background: linear-gradient(
+    180deg,
+    rgba(18, 18, 26, 0.3) 0%,
+    rgba(18, 18, 26, 0.7) 60%,
+    var(--bg-secondary) 100%
+  );
+}
+
+.detail-close {
+  position: absolute;
+  top: 16px;
+  right: 16px;
+  z-index: 10;
+  background: rgba(0, 0, 0, 0.5) !important;
+  backdrop-filter: blur(8px);
+}
+
+.detail-header-content {
+  position: absolute;
+  bottom: 0;
+  left: 0;
+  right: 0;
+  padding: 0 32px 24px;
+  z-index: 2;
+}
+
+.detail-title {
+  font-size: 2.5rem;
+  letter-spacing: 0.06em;
+  margin-bottom: 12px;
+  text-shadow: 0 2px 16px rgba(0, 0, 0, 0.5);
+}
+
+.detail-meta {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  flex-wrap: wrap;
+}
+
+.detail-meta-item {
+  display: flex;
+  align-items: center;
+  gap: 5px;
+  font-size: 0.85rem;
+  color: var(--text-secondary);
+}
+
+/* ── Body ───────────────────────────────────────────────── */
+.detail-body {
+  padding: 24px 32px 32px;
+}
+
+.detail-actions {
+  margin-bottom: 20px;
+}
+
+.detail-genres {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  margin-bottom: 16px;
+}
+
+.detail-overview {
+  font-size: 0.92rem;
+  color: var(--text-secondary);
+  line-height: 1.7;
+  margin-bottom: 28px;
+}
+
+.detail-section-title {
+  font-size: 1.1rem;
+  font-weight: 600;
+  margin-bottom: 14px;
+  color: var(--text-primary);
+}
+
+/* ── Cast ───────────────────────────────────────────────── */
+.detail-cast-section {
+  margin-bottom: 28px;
+}
+
+.detail-cast-row {
+  gap: 16px;
+  padding-bottom: 8px;
+}
+
+.cast-card {
+  flex-shrink: 0;
+  width: 80px;
+  text-align: center;
+}
+
+.cast-avatar {
+  width: 64px;
+  height: 64px;
+  border-radius: 50%;
+  object-fit: cover;
+  margin: 0 auto 8px;
+  border: 2px solid var(--border-subtle);
+}
+
+.cast-avatar-placeholder {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: var(--bg-tertiary);
+  color: var(--text-tertiary);
+  font-weight: 600;
+  font-size: 1.2rem;
+}
+
+.cast-name {
+  display: block;
+  font-size: 0.72rem;
+  font-weight: 500;
+  color: var(--text-primary);
+}
+
+.cast-character {
+  display: block;
+  font-size: 0.65rem;
+}
+
+/* ── Torrents ───────────────────────────────────────────── */
+.detail-torrents-section {
+  margin-top: 4px;
+}
+
+.torrent-loading {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding: 24px;
+  color: var(--text-secondary);
+  font-size: 0.88rem;
+}
+
+.no-torrents {
+  padding: 24px;
+  text-align: center;
+  color: var(--text-secondary);
+  font-size: 0.9rem;
+}
+
+.no-torrents p:first-child {
+  margin-bottom: 4px;
+  color: var(--text-primary);
+}

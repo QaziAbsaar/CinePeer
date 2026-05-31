@@ -1,0 +1,132 @@
+.navbar {
+  position: fixed;
+  top: 0;
+  left: 0;
+  right: 0;
+  z-index: var(--z-nav);
+  transition: background var(--duration-normal) var(--ease-out);
+}
+
+.navbar-transparent {
+  background: var(--gradient-nav);
+}
+
+.navbar-solid {
+  background: rgba(10, 10, 15, 0.95);
+  backdrop-filter: blur(16px);
+  -webkit-backdrop-filter: blur(16px);
+  border-bottom: 1px solid var(--border-subtle);
+}
+
+.navbar-drag {
+  height: var(--titlebar-height);
+}
+
+.navbar-content {
+  display: flex;
+  align-items: center;
+  padding: 0 var(--page-padding);
+  height: var(--nav-height);
+  gap: 32px;
+}
+
+/* ── Logo ───────────────────────────────────────────────── */
+.navbar-logo {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  text-decoration: none;
+  flex-shrink: 0;
+}
+
+.logo-icon {
+  color: var(--accent-primary);
+  filter: drop-shadow(0 0 8px rgba(0, 212, 255, 0.4));
+}
+
+.logo-text {
+  font-size: 1.5rem;
+  color: var(--text-primary);
+  letter-spacing: 0.12em;
+}
+
+/* ── Nav Links ──────────────────────────────────────────── */
+.navbar-links {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  flex: 1;
+}
+
+.nav-link {
+  position: relative;
+  padding: 8px 16px;
+  font-size: 0.88rem;
+  font-weight: 500;
+  color: var(--text-secondary);
+  transition: color var(--duration-fast) var(--ease-out);
+  border-radius: var(--radius-sm);
+}
+
+.nav-link:hover {
+  color: var(--text-primary);
+}
+
+.nav-link-active {
+  color: var(--text-primary);
+}
+
+.nav-link-active::after {
+  content: '';
+  position: absolute;
+  bottom: 0;
+  left: 16px;
+  right: 16px;
+  height: 2px;
+  background: var(--accent-primary);
+  border-radius: 1px;
+  box-shadow: 0 0 8px rgba(0, 212, 255, 0.5);
+}
+
+/* ── Actions ────────────────────────────────────────────── */
+.navbar-actions {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  flex-shrink: 0;
+}
+
+.nav-action-btn {
+  position: relative;
+  width: 38px;
+  height: 38px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  border-radius: 50%;
+  color: var(--text-secondary);
+  transition: all var(--duration-fast) var(--ease-out);
+}
+
+.nav-action-btn:hover {
+  color: var(--text-primary);
+  background: var(--bg-glass);
+}
+
+.download-badge {
+  position: absolute;
+  top: 4px;
+  right: 4px;
+  width: 16px;
+  height: 16px;
+  background: var(--accent-secondary);
+  color: #fff;
+  font-size: 0.6rem;
+  font-weight: 700;
+  border-radius: 50%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  animation: pulseGlow 2s ease-in-out infinite;
+  box-shadow: 0 0 8px rgba(233, 69, 96, 0.5);
+}

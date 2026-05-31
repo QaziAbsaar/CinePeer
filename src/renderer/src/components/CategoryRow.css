@@ -1,0 +1,74 @@
+.category-row {
+  margin-bottom: 36px;
+}
+
+.category-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 0 var(--page-padding);
+  margin-bottom: 12px;
+}
+
+.category-title {
+  color: var(--text-primary);
+}
+
+.category-see-more {
+  font-size: 0.82rem;
+  font-weight: 500;
+  color: var(--accent-primary);
+  transition: opacity var(--duration-fast);
+  padding: 4px 8px;
+  border-radius: var(--radius-sm);
+}
+
+.category-see-more:hover {
+  opacity: 0.8;
+}
+
+/* ── Scroll Wrapper ─────────────────────────────────────── */
+.category-scroll-wrapper {
+  position: relative;
+}
+
+.category-scroll-wrapper .scroll-row {
+  padding-left: var(--page-padding);
+  padding-right: var(--page-padding);
+}
+
+/* ── Scroll Arrows ──────────────────────────────────────── */
+.scroll-arrow {
+  position: absolute;
+  top: 0;
+  bottom: 16px;
+  width: 48px;
+  z-index: 5;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  color: #fff;
+  opacity: 0;
+  transition: opacity var(--duration-fast) var(--ease-out);
+  cursor: pointer;
+}
+
+.category-scroll-wrapper:hover .scroll-arrow {
+  opacity: 1;
+}
+
+.scroll-arrow-left {
+  left: 0;
+  background: linear-gradient(90deg, var(--bg-primary) 0%, transparent 100%);
+  padding-left: 8px;
+}
+
+.scroll-arrow-right {
+  right: 0;
+  background: linear-gradient(-90deg, var(--bg-primary) 0%, transparent 100%);
+  padding-right: 8px;
+}
+
+.scroll-arrow:hover {
+  color: var(--accent-primary);
+}

@@ -1,0 +1,119 @@
+import { useState, useEffect, useCallback } from 'react'
+import { Play, Info, Star, Calendar } from 'lucide-react'
+import { getBackdropUrl } from '../services/tmdb'
+import { GENRES } from '../utils/constants'
+import useMediaStore from '../store/useMediaStore'
+import './FeaturedBanner.css'
+
+export default function FeaturedBanner({ items = [] }) {
+  const [currentIndex, setCurrentIndex] = useState(0)
+  const [isTransitioning, setIsTransitioning] = useState(false)
+  const { setSelectedMedia } = useMediaStore()
+
+  const validItems = items.filter(item => item.backdrop_path)
+  const current = validItems[currentIndex]
+
+  // Auto-rotate every 8 seconds
+  useEffect(() => {
+    if (validItems.length <= 1) return
+    const interval = setInterval(() => {
+      setIsTransitioning(true)
+      setTimeout(() => {
+        setCurrentIndex((prev) => (prev + 1) % validItems.length)
+        setIsTransitioning(false)
+      }, 400)
+    }, 8000)
+    return () => clearInterval(interval)
+  }, [validItems.length])
+
+  const goToSlide = useCallback((index) => {
+    if (index === currentIndex) return
+    setIsTransitioning(true)
+    setTimeout(() => {
+      setCurrentIndex(index)
+      setIsTransitioning(false)
+    }, 300)
+  }, [currentIndex])
+
+  if (!current) return null
+
+  const title = current.title || current.name || 'Untitled'
+  const overview = current.overview || ''
+  const rating = current.vote_average?.toFixed(1)
+  const year = (current.release_date || current.first_air_date || '').substring(0, 4)
+  const mediaType = current.media_type || (current.title ? 'movie' : 'tv')
+  const genreNames = (current.genre_ids || [])
+    .slice(0, 3)
+    .map(id => GENRES[id])
+    .filter(Boolean)
+
+  return (
+    <section className="featured-banner" id="featured-banner">
+      {/* Background Image */}
+      <div
+        className={`featured-backdrop ${isTransitioning ? 'fading' : ''}`}
+        style={{
+          backgroundImage: `url(${getBackdropUrl(current.backdrop_path, 'original')})`
+        }}
+      />
+
+      {/* Gradients */}
+      <div className="featured-gradient-left" />
+      <div className="featured-gradient-bottom" />
+
+      {/* Content */}
+      <div className={`featured-content ${isTransitioning ? 'fading' : ''}`}>
+        <h1 className="featured-title text-hero">{title}</h1>
+
+        <div className="featured-meta">
+          {rating && (
+            <span className="badge badge-rating">
+              <Star size={12} fill="currentColor" /> {rating}
+            </span>
+          )}
+          {year && (
+            <span className="featured-year">
+              <Calendar size={14} /> {year}
+            </span>
+          )}
+          {genreNames.map(g => (
+            <span key={g} className="genre-pill">{g}</span>
+          ))}
+        </div>
+
+        <p className="featured-overview truncate-3">{overview}</p>
+
+        <div className="featured-actions">
+          <button
+            className="btn btn-primary"
+            onClick={() => setSelectedMedia(current, mediaType)}
+          >
+            <Play size={18} fill="currentColor" />
+            Play Now
+          </button>
+          <button
+            className="btn btn-secondary"
+            onClick={() => setSelectedMedia(current, mediaType)}
+          >
+            <Info size={18} />
+            More Info
+          </button>
+        </div>
+      </div>
+
+      {/* Slide Indicators */}
+      {validItems.length > 1 && (
+        <div className="featured-indicators">
+          {validItems.slice(0, 8).map((_, idx) => (
+            <button
+              key={idx}
+              className={`indicator-dot ${idx === currentIndex ? 'active' : ''}`}
+              onClick={() => goToSlide(idx)}
+              aria-label={`Go to slide ${idx + 1}`}
+            />
+          ))}
+        </div>
+      )}
+    </section>
+  )
+}

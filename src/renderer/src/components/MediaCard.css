@@ -1,0 +1,154 @@
+.media-card {
+  flex-shrink: 0;
+  width: 180px;
+  cursor: pointer;
+  transition: transform var(--duration-normal) var(--ease-out);
+  outline: none;
+}
+
+.media-card:focus-visible {
+  outline: 2px solid var(--accent-primary);
+  outline-offset: 4px;
+  border-radius: var(--card-radius);
+}
+
+.media-card-hovered {
+  transform: scale(1.05);
+  z-index: var(--z-card-hover);
+}
+
+/* ── Poster ─────────────────────────────────────────────── */
+.media-card-poster {
+  position: relative;
+  aspect-ratio: 2 / 3;
+  border-radius: var(--card-radius);
+  overflow: hidden;
+  background: var(--bg-secondary);
+}
+
+.media-card-shimmer {
+  position: absolute;
+  inset: 0;
+}
+
+.media-card-img {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  opacity: 0;
+  transition: opacity var(--duration-slow) var(--ease-out);
+}
+
+.media-card-img.loaded {
+  opacity: 1;
+}
+
+.media-card-no-image {
+  width: 100%;
+  height: 100%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: var(--bg-tertiary);
+  color: var(--text-tertiary);
+}
+
+/* ── Badge ──────────────────────────────────────────────── */
+.media-card-poster .badge {
+  position: absolute;
+  top: 8px;
+  right: 8px;
+  z-index: 2;
+}
+
+/* ── Hover Overlay ──────────────────────────────────────── */
+.media-card-overlay {
+  position: absolute;
+  inset: 0;
+  background: var(--gradient-card);
+  display: flex;
+  flex-direction: column;
+  justify-content: flex-end;
+  padding: 16px 12px;
+  opacity: 0;
+  transition: opacity var(--duration-normal) var(--ease-out);
+}
+
+.media-card-hovered .media-card-overlay {
+  opacity: 1;
+}
+
+.media-card-overlay-actions {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  margin-bottom: 12px;
+  transform: translateY(10px);
+  transition: transform var(--duration-normal) var(--ease-out);
+}
+
+.media-card-hovered .media-card-overlay-actions {
+  transform: translateY(0);
+}
+
+.btn-sm {
+  padding: 6px 14px;
+  font-size: 0.78rem;
+}
+
+.btn-watchlist {
+  width: 32px;
+  height: 32px;
+}
+
+.btn-watchlist.in-list {
+  background: var(--accent-primary-dim);
+  border-color: var(--accent-primary);
+  color: var(--accent-primary);
+}
+
+.media-card-overlay-title {
+  font-size: 0.88rem;
+  font-weight: 600;
+  color: #fff;
+  margin-bottom: 4px;
+}
+
+.media-card-overlay-meta {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  font-size: 0.75rem;
+  color: var(--text-secondary);
+}
+
+/* ── Info Below Poster ──────────────────────────────────── */
+.media-card-info {
+  padding: 8px 4px 4px;
+}
+
+.media-card-title {
+  font-size: 0.82rem;
+  font-weight: 500;
+  color: var(--text-primary);
+  margin-bottom: 2px;
+}
+
+.media-card-meta {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  font-size: 0.72rem;
+}
+
+/* ── Grid Layout (for Movies/TV pages) ──────────────────── */
+.media-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(170px, 1fr));
+  gap: 24px 16px;
+  padding: 8px 0;
+}
+
+.media-grid .media-card {
+  width: 100%;
+}

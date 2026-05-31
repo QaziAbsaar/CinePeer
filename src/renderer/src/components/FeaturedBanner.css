@@ -1,0 +1,123 @@
+.featured-banner {
+  position: relative;
+  width: 100%;
+  height: 80vh;
+  min-height: 500px;
+  max-height: 800px;
+  overflow: hidden;
+  margin-bottom: 24px;
+}
+
+/* ── Backdrop Image ─────────────────────────────────────── */
+.featured-backdrop {
+  position: absolute;
+  inset: 0;
+  background-size: cover;
+  background-position: center top;
+  background-repeat: no-repeat;
+  transition: opacity 0.5s ease;
+}
+
+.featured-backdrop.fading {
+  opacity: 0;
+}
+
+/* ── Gradients ──────────────────────────────────────────── */
+.featured-gradient-left {
+  position: absolute;
+  inset: 0;
+  background: var(--gradient-hero);
+  z-index: 1;
+}
+
+.featured-gradient-bottom {
+  position: absolute;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  height: 40%;
+  background: var(--gradient-hero-bottom);
+  z-index: 1;
+}
+
+/* ── Content ────────────────────────────────────────────── */
+.featured-content {
+  position: relative;
+  z-index: 2;
+  display: flex;
+  flex-direction: column;
+  justify-content: flex-end;
+  height: 100%;
+  padding: 0 var(--page-padding);
+  padding-bottom: 80px;
+  max-width: 650px;
+  transition: opacity 0.3s ease, transform 0.3s ease;
+}
+
+.featured-content.fading {
+  opacity: 0;
+  transform: translateY(10px);
+}
+
+.featured-title {
+  margin-bottom: 16px;
+  text-shadow: 0 2px 20px rgba(0, 0, 0, 0.6);
+}
+
+.featured-meta {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  margin-bottom: 16px;
+  flex-wrap: wrap;
+}
+
+.featured-year {
+  display: flex;
+  align-items: center;
+  gap: 5px;
+  font-size: 0.85rem;
+  color: var(--text-secondary);
+}
+
+.featured-overview {
+  font-size: 0.95rem;
+  color: var(--text-secondary);
+  line-height: 1.6;
+  margin-bottom: 24px;
+  max-width: 540px;
+}
+
+.featured-actions {
+  display: flex;
+  gap: 12px;
+}
+
+/* ── Indicators ─────────────────────────────────────────── */
+.featured-indicators {
+  position: absolute;
+  bottom: 32px;
+  right: var(--page-padding);
+  z-index: 3;
+  display: flex;
+  gap: 8px;
+}
+
+.indicator-dot {
+  width: 10px;
+  height: 10px;
+  border-radius: 50%;
+  background: rgba(255, 255, 255, 0.3);
+  transition: all var(--duration-normal) var(--ease-out);
+  cursor: pointer;
+}
+
+.indicator-dot.active {
+  background: var(--accent-primary);
+  box-shadow: 0 0 10px rgba(0, 212, 255, 0.5);
+  transform: scale(1.2);
+}
+
+.indicator-dot:hover:not(.active) {
+  background: rgba(255, 255, 255, 0.5);
+}
