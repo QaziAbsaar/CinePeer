@@ -115,7 +115,6 @@ body {
   padding: 0;
   display: flex;
   flex-direction: column;
-  overflow: hidden;
 }
 
 a {
@@ -406,6 +405,7 @@ ul, ol {
 .page-container {
   padding-top: var(--navbar-offset, calc(var(--nav-height) + var(--titlebar-height)));
   min-height: 100vh;
+  overflow-y: auto;
 }
 
 .page-content {
