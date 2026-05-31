@@ -1,10 +1,13 @@
 import axios from 'axios'
 import { YTS_BASE_URL, buildMagnetUri } from '../utils/constants'
+import { setupRetryInterceptor } from '../utils/retry'
 
 const yts = axios.create({
   baseURL: YTS_BASE_URL,
   timeout: 15000
 })
+
+setupRetryInterceptor(yts, 'YTS')
 
 yts.interceptors.response.use(
   (response) => response.data,

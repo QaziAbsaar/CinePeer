@@ -1,21 +1,37 @@
 import { useState } from 'react'
-import { Settings, Key, FolderOpen, Monitor, Globe, Check, AlertCircle } from 'lucide-react'
+import { Settings, Key, FolderOpen, Monitor, Globe, Check, AlertCircle, Gauge, Subtitles } from 'lucide-react'
 import useAppStore from '../store/useAppStore'
 import { validateApiKey } from '../services/tmdb'
+import { validateOsApiKey } from '../services/opensubtitles'
 import { QUALITY_OPTIONS } from '../utils/constants'
+import useToastStore from '../store/useToastStore'
 import './SettingsPage.css'
+
+const BANDWIDTH_OPTIONS = [
+  { value: 0, label: 'Unlimited' },
+  { value: 1024, label: '1 MB/s' },
+  { value: 5120, label: '5 MB/s' },
+  { value: 10240, label: '10 MB/s' },
+  { value: 51200, label: '50 MB/s' }
+]
 
 export default function SettingsPage() {
   const {
     tmdbApiKey, setTmdbApiKey,
     defaultQuality, setDefaultQuality,
     downloadPath, setDownloadPath,
-    ytsBaseUrl, setYtsBaseUrl
+    ytsBaseUrl, setYtsBaseUrl,
+    maxDownloadSpeed, setMaxDownloadSpeed,
+    opensubtitlesApiKey, setOpensubtitlesApiKey
   } = useAppStore()
+  const addToast = useToastStore((s) => s.addToast)
 
   const [apiKeyInput, setApiKeyInput] = useState(tmdbApiKey)
   const [validating, setValidating] = useState(false)
   const [validationResult, setValidationResult] = useState(null) // null | 'success' | 'error'
+  const [subtitleKeyInput, setSubtitleKeyInput] = useState(opensubtitlesApiKey)
+  const [subtitleValidating, setSubtitleValidating] = useState(false)
+  const [subtitleValidationResult, setSubtitleValidationResult] = useState(null)
 
   const handleValidateAndSave = async () => {
     if (!apiKeyInput.trim()) return
@@ -124,6 +140,124 @@ export default function SettingsPage() {
             placeholder="https://yts.mx/api/v2"
             id="yts-base-url-input"
           />
+        </section>
+
+        {/* Download Location */}
+        <section className="settings-section glass-card">
+          <div className="settings-section-header">
+            <FolderOpen size={20} />
+            <div>
+              <h2 className="settings-section-title">Download Location</h2>
+              <p className="text-meta">Where completed downloads are saved.</p>
+            </div>
+          </div>
+          <div className="settings-field-row">
+            <input
+              type="text"
+              className="input-field"
+              value={downloadPath}
+              readOnly
+              placeholder="Default: ~/Downloads/StreamVault"
+              id="download-path-input"
+            />
+            <button
+              className="btn btn-secondary"
+              onClick={async () => {
+                try {
+                  const selected = await window.electron.system.selectDirectory()
+                  if (selected) {
+                    setDownloadPath(selected)
+                    addToast('Download location updated', 'success')
+                  }
+                } catch {
+                  // Not in Electron shell
+                }
+              }}
+            >
+              Browse
+            </button>
+          </div>
+        </section>
+
+        {/* Bandwidth Limit */}
+        <section className="settings-section glass-card">
+          <div className="settings-section-header">
+            <Gauge size={20} />
+            <div>
+              <h2 className="settings-section-title">Bandwidth Limit</h2>
+              <p className="text-meta">Maximum download speed. Helps prevent saturating your connection.</p>
+            </div>
+          </div>
+          <select
+            className="select-styled"
+            value={maxDownloadSpeed}
+            onChange={(e) => setMaxDownloadSpeed(parseInt(e.target.value, 10))}
+            id="bandwidth-limit-select"
+          >
+            {BANDWIDTH_OPTIONS.map(opt => (
+              <option key={opt.value} value={opt.value}>{opt.label}</option>
+            ))}
+          </select>
+        </section>
+
+        {/* OpenSubtitles API Key */}
+        <section className="settings-section glass-card">
+          <div className="settings-section-header">
+            <Subtitles size={20} />
+            <div>
+              <h2 className="settings-section-title">Subtitles (OpenSubtitles)</h2>
+              <p className="text-meta">Optional. Add subtitle support to your streams. Get a free API key at opensubtitles.com.</p>
+            </div>
+          </div>
+          <div className="settings-field-row">
+            <input
+              type="text"
+              className="input-field"
+              placeholder="Enter your OpenSubtitles API key..."
+              value={subtitleKeyInput}
+              onChange={(e) => {
+                setSubtitleKeyInput(e.target.value)
+                setSubtitleValidationResult(null)
+              }}
+              id="opensubtitles-api-key-input"
+            />
+            <button
+              className="btn btn-primary"
+              onClick={async () => {
+                if (!subtitleKeyInput.trim()) return
+                setSubtitleValidating(true)
+                setSubtitleValidationResult(null)
+                const isValid = await validateOsApiKey(subtitleKeyInput.trim())
+                if (isValid) {
+                  setOpensubtitlesApiKey(subtitleKeyInput.trim())
+                  setSubtitleValidationResult('success')
+                  addToast('OpenSubtitles API key saved!', 'success')
+                } else {
+                  setSubtitleValidationResult('error')
+                }
+                setSubtitleValidating(false)
+              }}
+              disabled={subtitleValidating || !subtitleKeyInput.trim()}
+            >
+              {subtitleValidating ? <div className="spinner" /> : 'Save & Validate'}
+            </button>
+          </div>
+          {subtitleValidationResult === 'success' && (
+            <div className="validation-msg success">
+              <Check size={16} /> API key is valid! Subtitles will load during playback.
+            </div>
+          )}
+          {subtitleValidationResult === 'error' && (
+            <div className="validation-msg error">
+              <AlertCircle size={16} /> Invalid API key. Please check and try again.
+            </div>
+          )}
+          <p className="settings-help text-small">
+            Get a free API key at{' '}
+            <a href="https://opensubtitles.com" target="_blank" rel="noreferrer" className="settings-link">
+              opensubtitles.com
+            </a>
+          </p>
         </section>
 
         {/* About */}

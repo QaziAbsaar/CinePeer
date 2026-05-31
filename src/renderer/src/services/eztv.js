@@ -1,10 +1,13 @@
 import axios from 'axios'
 import { EZTV_BASE_URL } from '../utils/constants'
+import { setupRetryInterceptor } from '../utils/retry'
 
 const eztv = axios.create({
   baseURL: EZTV_BASE_URL,
   timeout: 15000
 })
+
+setupRetryInterceptor(eztv, 'EZTV')
 
 eztv.interceptors.response.use(
   (response) => response.data,

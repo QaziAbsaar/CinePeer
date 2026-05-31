@@ -36,6 +36,25 @@ const useAppStore = create((set, get) => ({
     set({ subtitleLanguage: lang })
   },
 
+  maxDownloadSpeed: parseInt(localStorage.getItem('sv_max_download_speed') || '0', 10),
+  setMaxDownloadSpeed: (speed) => {
+    localStorage.setItem('sv_max_download_speed', String(speed))
+    set({ maxDownloadSpeed: speed })
+  },
+
+  // ── Subtitles ───────────────────────────────────────────────
+  opensubtitlesApiKey: localStorage.getItem('sv_opensubtitles_api_key') || '',
+  setOpensubtitlesApiKey: (key) => {
+    localStorage.setItem('sv_opensubtitles_api_key', key)
+    set({ opensubtitlesApiKey: key })
+  },
+
+  subtitleEnabled: localStorage.getItem('sv_subtitle_enabled') !== 'false',
+  setSubtitleEnabled: (enabled) => {
+    localStorage.setItem('sv_subtitle_enabled', String(enabled))
+    set({ subtitleEnabled: enabled })
+  },
+
   // ── UI State ──────────────────────────────────────────────
   isDownloadManagerOpen: false,
   toggleDownloadManager: () => set((s) => ({ isDownloadManagerOpen: !s.isDownloadManagerOpen })),

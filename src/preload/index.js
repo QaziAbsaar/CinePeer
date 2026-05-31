@@ -9,6 +9,8 @@ contextBridge.exposeInMainWorld('electron', {
   },
   system: {
     getDownloadPath: () => ipcRenderer.invoke('system:getDownloadPath'),
-    getUserDataPath: () => ipcRenderer.invoke('system:getUserDataPath')
+    getUserDataPath: () => ipcRenderer.invoke('system:getUserDataPath'),
+    openFolder: (folderPath) => ipcRenderer.invoke('system:openFolder', folderPath),
+    selectDirectory: () => ipcRenderer.invoke('system:selectDirectory')
   }
 })

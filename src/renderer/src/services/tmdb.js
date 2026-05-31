@@ -1,12 +1,16 @@
 import axios from 'axios'
 import { TMDB_BASE_URL, TMDB_IMAGE_BASE, IMAGE_SIZES } from '../utils/constants'
 import { getCached, setCache } from '../utils/cache'
+import { setupRetryInterceptor } from '../utils/retry'
 
 // Create axios instance
 const tmdb = axios.create({
   baseURL: TMDB_BASE_URL,
   timeout: 10000
 })
+
+// Add retry logic with exponential backoff
+setupRetryInterceptor(tmdb, 'TMDB')
 
 // Request interceptor — append API key
 tmdb.interceptors.request.use((config) => {
@@ -21,7 +25,20 @@ tmdb.interceptors.request.use((config) => {
 tmdb.interceptors.response.use(
   (response) => response.data,
   (error) => {
-    console.error('[TMDB]', error.response?.status, error.message)
+    const status = error.response?.status
+    console.error('[TMDB]', status, error.message)
+
+    // Show toast for key auth failures (but not on every failed detail fetch)
+    if (status === 401) {
+      import('../store/useToastStore').then((m) =>
+        m.default.getState().addToast(
+          'Invalid TMDB API key. Check your settings.',
+          'error',
+          6000
+        )
+      )
+    }
+
     throw error
   }
 )
@@ -140,6 +157,31 @@ export function getPosterUrl(path, size = 'medium') {
 export function getBackdropUrl(path, size = 'large') {
   if (!path) return null
   return `${TMDB_IMAGE_BASE}/${IMAGE_SIZES.backdrop[size]}${path}`
+}
+
+/**
+ * Look up a movie or TV show by external ID (IMDB).
+ * Used to bridge YTS data (which has IMDB IDs) to TMDB data.
+ * @param {string} imdbId - e.g. 'tt1234567'
+ * @param {string} [source='imdb_id'] - External source
+ */
+export async function lookupByExternalId(imdbId, source = 'imdb_id') {
+  try {
+    const data = await tmdb.get(`/find/${imdbId}`, {
+      params: { external_source: source }
+    })
+    const movieResults = data?.movie_results || []
+    const tvResults = data?.tv_results || []
+    if (movieResults.length > 0) {
+      return { ...movieResults[0], media_type: 'movie' }
+    }
+    if (tvResults.length > 0) {
+      return { ...tvResults[0], media_type: 'tv' }
+    }
+    return null
+  } catch {
+    return null
+  }
 }
 
 export function getProfileUrl(path, size = 'medium') {

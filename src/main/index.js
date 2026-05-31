@@ -1,5 +1,6 @@
 const { app, BrowserWindow, ipcMain, shell, session } = require('electron')
 const path = require('path')
+const fs = require('fs')
 const { TorrentManager } = require('./torrent')
 
 let mainWindow = null
@@ -89,6 +90,27 @@ function registerIPC() {
 
   ipcMain.handle('system:getUserDataPath', () => {
     return app.getPath('userData')
+  })
+
+  ipcMain.handle('system:openFolder', async (_, folderPath) => {
+    try {
+      // Ensure the directory exists before opening
+      const dir = path.dirname(folderPath)
+      if (!fs.existsSync(dir)) {
+        fs.mkdirSync(dir, { recursive: true })
+      }
+      shell.openPath(folderPath)
+      return true
+    } catch {
+      return false
+    }
+  })
+
+  ipcMain.handle('system:selectDirectory', async () => {
+    const result = await require('electron').dialog.showOpenDialog(mainWindow, {
+      properties: ['openDirectory']
+    })
+    return result.canceled ? null : result.filePaths[0]
   })
 }
 

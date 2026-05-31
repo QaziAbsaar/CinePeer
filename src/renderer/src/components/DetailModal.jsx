@@ -1,6 +1,6 @@
 import { useState, useEffect, useCallback } from 'react'
 import { X, Star, Clock, Calendar, Play, Plus, Check, ExternalLink } from 'lucide-react'
-import { getDetails, getBackdropUrl, getProfileUrl } from '../services/tmdb'
+import { getDetails, getBackdropUrl, getProfileUrl, lookupByExternalId } from '../services/tmdb'
 import { searchByImdbId } from '../services/yts'
 import { getTorrents } from '../services/eztv'
 import { GENRES, formatDuration, formatBytes } from '../utils/constants'
@@ -32,8 +32,19 @@ export default function DetailModal() {
       setLoading(true)
       setTorrentLoading(true)
       try {
-        // Fetch TMDB details
-        const detailData = await getDetails(selectedMedia.id, selectedMediaType)
+        // Fetch TMDB details — fall back to IMDB lookup if YTS id was used
+        let detailData = null
+        try {
+          detailData = await getDetails(selectedMedia.id, selectedMediaType)
+        } catch {
+          // ID may be from YTS — try looking up by IMDB ID
+          if (selectedMedia.imdb_id) {
+            detailData = await lookupByExternalId(selectedMedia.imdb_id)
+            detailData = detailData
+              ? await getDetails(detailData.id, detailData.media_type || selectedMediaType)
+              : null
+          }
+        }
         setDetails(detailData)
         setLoading(false)
 
