@@ -1,6 +1,6 @@
 import { useState, useEffect, useCallback } from 'react'
 import { RefreshCw } from 'lucide-react'
-import { getTrending, getPopularMovies, getTopRatedMovies, getNowPlayingMovies, getPopularTV, getTopRatedTV, discoverByGenre } from '../services/tmdb'
+import { getTrending, getPopularMovies, getTopRatedMovies, getNowPlayingMovies, getPopularTV, getTopRatedTV, discoverByGenre } from '../services/metadata'
 import FeaturedBanner from '../components/FeaturedBanner'
 import CategoryRow from '../components/CategoryRow'
 import { SkeletonBanner, SkeletonRow } from '../components/SkeletonLoader'

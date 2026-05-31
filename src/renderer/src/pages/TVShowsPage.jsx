@@ -1,6 +1,6 @@
 import { useState, useEffect, useCallback } from 'react'
 import { RefreshCw } from 'lucide-react'
-import { getPopularTV, getTopRatedTV, getOnTheAirTV, discoverByGenre } from '../services/tmdb'
+import { getPopularTV, getTopRatedTV, getOnTheAirTV, discoverByGenre } from '../services/metadata'
 import CategoryRow from '../components/CategoryRow'
 import { SkeletonRow } from '../components/SkeletonLoader'
 import './TVShowsPage.css'

@@ -83,6 +83,33 @@
   opacity: 0.8;
 }
 
+.settings-source-status {
+  margin: 12px 0;
+  font-size: 0.82rem;
+  color: var(--text-secondary);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 6px;
+}
+
+.source-dot {
+  display: inline-block;
+  width: 8px;
+  height: 8px;
+  border-radius: 50%;
+}
+
+.source-dot.tmdb {
+  background: #01D277; /* TMDB green */
+  box-shadow: 0 0 6px rgba(1, 210, 119, 0.5);
+}
+
+.source-dot.omdb {
+  background: var(--accent-gold);
+  box-shadow: 0 0 6px rgba(255, 215, 0, 0.5);
+}
+
 .settings-about {
   text-align: center;
   padding: 32px;

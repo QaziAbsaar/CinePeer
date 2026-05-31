@@ -1,6 +1,6 @@
 import { useState, useEffect, useCallback } from 'react'
 import { X, Star, Clock, Calendar, Play, Plus, Check, ExternalLink } from 'lucide-react'
-import { getDetails, getBackdropUrl, getProfileUrl, lookupByExternalId } from '../services/tmdb'
+import { getDetails, getBackdropUrl, getProfileUrl, lookupByExternalId } from '../services/metadata'
 import { searchByImdbId } from '../services/yts'
 import { getTorrents } from '../services/eztv'
 import { GENRES, formatDuration, formatBytes } from '../utils/constants'

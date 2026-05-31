@@ -1,6 +1,6 @@
 import { useState, useEffect, useCallback } from 'react'
 import { Play, Info, Star, Calendar } from 'lucide-react'
-import { getBackdropUrl } from '../services/tmdb'
+import { getBackdropUrl } from '../services/metadata'
 import { GENRES } from '../utils/constants'
 import useMediaStore from '../store/useMediaStore'
 import './FeaturedBanner.css'
@@ -11,13 +11,16 @@ export default function FeaturedBanner({ items = [] }) {
   const [loadedBackdrops, setLoadedBackdrops] = useState(new Set())
   const { setSelectedMedia } = useMediaStore()
 
-  const validItems = items.filter(item => item.backdrop_path)
+  // Use items with backdrops if available, otherwise fall back to all items
+  const validItems = items.filter(item => item.backdrop_path).length > 0
+    ? items.filter(item => item.backdrop_path)
+    : items.slice(0, 10)
   const current = validItems[currentIndex]
 
   // Preload backdrop images for smooth transitions
   useEffect(() => {
     validItems.forEach((item) => {
-      const url = getBackdropUrl(item.backdrop_path, 'original')
+      const url = item.backdrop_path ? getBackdropUrl(item.backdrop_path, 'original') : null
       if (!url || loadedBackdrops.has(url)) return
       const img = new Image()
       img.onload = () => setLoadedBackdrops((prev) => new Set(prev).add(url))
@@ -54,18 +57,20 @@ export default function FeaturedBanner({ items = [] }) {
   const rating = current.vote_average?.toFixed(1)
   const year = (current.release_date || current.first_air_date || '').substring(0, 4)
   const mediaType = current.media_type || (current.title ? 'movie' : 'tv')
-  const genreNames = (current.genre_ids || [])
-    .slice(0, 3)
-    .map(id => GENRES[id])
-    .filter(Boolean)
+  // Genre names — handle both TMDB genre_ids and OMDB genre_names
+  const genreNames = current.genre_names?.length > 0
+    ? current.genre_names.slice(0, 3)
+    : (current.genre_ids || []).slice(0, 3).map(id => GENRES[id]).filter(Boolean)
 
   return (
     <section className="featured-banner" id="featured-banner">
-      {/* Background Image */}
+      {/* Background Image (with fallback gradient when no backdrop) */}
       <div
         className={`featured-backdrop ${isTransitioning ? 'fading' : ''}`}
         style={{
-          backgroundImage: `url(${getBackdropUrl(current.backdrop_path, 'original')})`
+          backgroundImage: current.backdrop_path
+            ? `url(${getBackdropUrl(current.backdrop_path, 'original')})`
+            : 'linear-gradient(135deg, var(--bg-secondary) 0%, var(--bg-tertiary) 100%)'
         }}
       />
 

@@ -1,7 +1,7 @@
 import { useState, useEffect, useRef, useCallback } from 'react'
 import { RefreshCw } from 'lucide-react'
 import { listMovies } from '../services/yts'
-import { getPosterUrl } from '../services/tmdb'
+import { getPosterUrl } from '../services/metadata'
 import FilterBar from '../components/FilterBar'
 import MediaCard from '../components/MediaCard'
 import { SkeletonCard } from '../components/SkeletonLoader'

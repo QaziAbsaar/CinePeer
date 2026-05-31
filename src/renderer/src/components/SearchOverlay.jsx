@@ -1,6 +1,6 @@
 import { useState, useEffect, useRef, useCallback } from 'react'
 import { Search, X } from 'lucide-react'
-import { searchMulti, getPosterUrl } from '../services/tmdb'
+import { searchMulti, getPosterUrl } from '../services/metadata'
 import useAppStore from '../store/useAppStore'
 import useMediaStore from '../store/useMediaStore'
 import MediaCard from './MediaCard'

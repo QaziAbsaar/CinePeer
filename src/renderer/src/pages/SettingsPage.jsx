@@ -1,8 +1,9 @@
 import { useState } from 'react'
 import { Settings, Key, FolderOpen, Monitor, Globe, Check, AlertCircle, Gauge, Subtitles } from 'lucide-react'
 import useAppStore from '../store/useAppStore'
-import { validateApiKey } from '../services/tmdb'
+import { validateApiKey, validateOmdbKey } from '../services/metadata'
 import { validateOsApiKey } from '../services/opensubtitles'
+import { isUsingOmdb } from '../services/metadata'
 import { QUALITY_OPTIONS } from '../utils/constants'
 import useToastStore from '../store/useToastStore'
 import './SettingsPage.css'
@@ -22,7 +23,8 @@ export default function SettingsPage() {
     downloadPath, setDownloadPath,
     ytsBaseUrl, setYtsBaseUrl,
     maxDownloadSpeed, setMaxDownloadSpeed,
-    opensubtitlesApiKey, setOpensubtitlesApiKey
+    opensubtitlesApiKey, setOpensubtitlesApiKey,
+    omdbApiKey, setOmdbApiKey
   } = useAppStore()
   const addToast = useToastStore((s) => s.addToast)
 
@@ -99,6 +101,37 @@ export default function SettingsPage() {
             <a href="https://www.themoviedb.org/settings/api" target="_blank" rel="noreferrer" className="settings-link">
               themoviedb.org/settings/api
             </a>
+          </p>
+        </section>
+
+        {/* OMDB API Key (temporary fallback) */}
+        <section className="settings-section glass-card">
+          <div className="settings-section-header">
+            <Globe size={20} />
+            <div>
+              <h2 className="settings-section-title">OMDB API Key (Fallback)</h2>
+              <p className="text-meta">
+                Temporary fallback while your TMDB account is being verified.
+                OMDB supports search + details only (no trending, genre discovery, or TV data).
+              </p>
+            </div>
+          </div>
+          <div className="settings-field-row">
+            <input
+              type="text"
+              className="input-field"
+              placeholder="Enter your OMDB API key..."
+              value={omdbApiKey}
+              onChange={(e) => setOmdbApiKey(e.target.value)}
+              id="omdb-api-key-input"
+            />
+          </div>
+          <p className="settings-help text-small">
+            Get a free key at{' '}
+            <a href="https://www.omdbapi.com/apikey.aspx" target="_blank" rel="noreferrer" className="settings-link">
+              omdbapi.com/apikey.aspx
+            </a>
+            {' '}— then paste it above. The app will auto-detect and use it when TMDB is unavailable.
           </p>
         </section>
 
@@ -264,6 +297,15 @@ export default function SettingsPage() {
         <section className="settings-section glass-card settings-about">
           <h2 className="settings-section-title gradient-text">StreamVault</h2>
           <p className="text-meta">Version 1.0.0</p>
+          <p className="settings-source-status">
+            <span className={`source-dot ${isUsingOmdb() ? 'omdb' : 'tmdb'}`} />
+            Metadata: <strong>{isUsingOmdb() ? 'OMDB (fallback)' : 'TMDB'}</strong>
+            {isUsingOmdb() && (
+              <span className="text-small" style={{ display: 'block', marginTop: 4 }}>
+                Switch back when TMDB account is verified
+              </span>
+            )}
+          </p>
           <p className="text-small" style={{ marginTop: 8 }}>
             A cinematic desktop streaming application. Built with Electron, React, and WebTorrent.
           </p>
