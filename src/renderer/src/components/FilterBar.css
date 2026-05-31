@@ -1,0 +1,38 @@
+.filter-bar {
+  display: flex;
+  align-items: center;
+  gap: 20px;
+  padding: 14px 24px;
+  margin-bottom: 24px;
+  flex-wrap: wrap;
+}
+
+.filter-icon {
+  color: var(--text-tertiary);
+  flex-shrink: 0;
+}
+
+.filter-group {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.filter-label {
+  font-size: 0.78rem;
+  font-weight: 500;
+  color: var(--text-tertiary);
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+  white-space: nowrap;
+}
+
+.filter-bar .select-styled {
+  min-width: 110px;
+}
+
+/* Dark dropdown options */
+.filter-bar select option {
+  background: var(--bg-secondary);
+  color: var(--text-primary);
+}
