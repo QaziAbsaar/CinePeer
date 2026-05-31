@@ -6,7 +6,7 @@
   <img src="https://img.shields.io/badge/License-MIT-green" />
 </p>
 
-<h1 align="center">🎬 StreamVault</h1>
+<h1 align="center">🎬 CinePeer</h1>
 
 <p align="center">
   <strong>A cinematic desktop streaming application</strong><br/>
