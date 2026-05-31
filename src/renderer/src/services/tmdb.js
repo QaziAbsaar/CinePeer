@@ -45,8 +45,7 @@ fanartApi.interceptors.response.use(
   (r) => r.data,
   (error) => {
     console.warn('[Fanart.tv]', error.response?.status, error.message)
-    // Do NOT throw — Fanart is optional enrichment
-    return null
+    throw error  // Let callers handle (enrichFns have try/catch, validateFn uses raw axios)
   }
 )
 
@@ -361,9 +360,15 @@ export async function validateOmdbKey(key) {
 
 export async function validateFanartKey(key) {
   try {
-    const data = await fanartApi.get('/movies/tt1375666', { params: { api_key: key } })
-    return data !== null && !data.error
-  } catch {
+    const res = await axios.get(`${FANART_BASE_URL}/movies/tt1375666`, {
+      params: { api_key: key },
+      timeout: 8000
+    })
+    // Valid key returns 200 with movie data (no 'error' property)
+    // Invalid key returns 401/403 or error response
+    return res.status === 200 && !res.data?.error
+  } catch (err) {
+    console.warn('[Fanart.tv] Validate failed:', err.response?.status, err.message)
     return false
   }
 }
