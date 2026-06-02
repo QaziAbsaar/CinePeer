@@ -22,6 +22,20 @@
   opacity: 0;
 }
 
+/* ── Poster fallback ────────────────────────────────────────── */
+.featured-backdrop.fallback {
+  background-position: center 30%;
+}
+
+.featured-backdrop.fallback + .featured-gradient-left {
+  background: linear-gradient(135deg, rgba(10, 10, 20, 0.95) 0%, rgba(10, 10, 20, 0.7) 60%, transparent 100%);
+}
+
+.featured-backdrop.fallback + .featured-gradient-left + .featured-gradient-bottom {
+  height: 60%;
+  background: linear-gradient(transparent 0%, rgba(10, 10, 20, 0.9) 100%);
+}
+
 /* ── Gradients ──────────────────────────────────────────── */
 .featured-gradient-left {
   position: absolute;

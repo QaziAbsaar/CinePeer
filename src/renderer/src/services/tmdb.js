@@ -360,15 +360,36 @@ export async function validateOmdbKey(key) {
 
 export async function validateFanartKey(key) {
   try {
-    const res = await axios.get(`${FANART_BASE_URL}/movies/tt1375666`, {
+    const url = `${FANART_BASE_URL}/movies/tt1375666`
+    console.log('[Fanart.tv] Validating key at:', url)
+
+    // Try query-param method first
+    const res = await axios.get(url, {
       params: { api_key: key },
-      timeout: 8000
+      headers: {
+        'api-key': key  // also try header method
+      },
+      timeout: 8000,
+      // Don't throw on non-2xx so we can inspect the response
+      validateStatus: () => true
     })
-    // Valid key returns 200 with movie data (no 'error' property)
-    // Invalid key returns 401/403 or error response
-    return res.status === 200 && !res.data?.error
+
+    console.log('[Fanart.tv] Response:', res.status, res.data?.error || res.data?.status || 'OK')
+
+    // Valid: 200, no error, has movie data with id
+    if (res.status === 200 && !res.data?.error && res.data?.id) return true
+
+    // 401/403 = invalid key
+    if (res.status === 401 || res.status === 403) {
+      console.warn('[Fanart.tv] Key rejected by server (401/403)')
+      return false
+    }
+
+    // Any 200 with error field = also invalid
+    return false
   } catch (err) {
-    console.warn('[Fanart.tv] Validate failed:', err.response?.status, err.message)
+    console.warn('[Fanart.tv] Validate failed (network error):', err.message)
+    if (err.response) console.warn('Status:', err.response.status)
     return false
   }
 }

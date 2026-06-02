@@ -1,6 +1,6 @@
 import { useState, useEffect, useCallback } from 'react'
 import { Play, Info, Star, Calendar } from 'lucide-react'
-import { getBackdropUrl } from '../services/metadata'
+import { getBackdropUrl, getPosterUrl } from '../services/metadata'
 import { GENRES } from '../utils/constants'
 import useMediaStore from '../store/useMediaStore'
 import './FeaturedBanner.css'
@@ -11,11 +11,16 @@ export default function FeaturedBanner({ items = [] }) {
   const [loadedBackdrops, setLoadedBackdrops] = useState(new Set())
   const { setSelectedMedia } = useMediaStore()
 
-  // Use items with backdrops if available, otherwise fall back to all items
-  const validItems = items.filter(item => item.backdrop_path).length > 0
+  // Prefer items with backdrops; fall back to items with posters; last resort all items
+  const hasBackdrops = items.some(item => item.backdrop_path)
+  const hasPosters = items.some(item => item.poster_path)
+  const validItems = hasBackdrops
     ? items.filter(item => item.backdrop_path)
-    : items.slice(0, 10)
+    : hasPosters
+      ? items.filter(item => item.poster_path)
+      : items.slice(0, 10)
   const current = validItems[currentIndex]
+  const isFallback = !current?.backdrop_path && current?.poster_path
 
   // Preload backdrop images for smooth transitions
   useEffect(() => {
@@ -36,7 +41,7 @@ export default function FeaturedBanner({ items = [] }) {
       setTimeout(() => {
         setCurrentIndex((prev) => (prev + 1) % validItems.length)
         setIsTransitioning(false)
-      }, 400)
+      }, 500)
     }, 8000)
     return () => clearInterval(interval)
   }, [validItems.length])
@@ -47,7 +52,7 @@ export default function FeaturedBanner({ items = [] }) {
     setTimeout(() => {
       setCurrentIndex(index)
       setIsTransitioning(false)
-    }, 300)
+    }, 500)
   }, [currentIndex])
 
   if (!current) return null
@@ -64,13 +69,15 @@ export default function FeaturedBanner({ items = [] }) {
 
   return (
     <section className="featured-banner" id="featured-banner">
-      {/* Background Image (with fallback gradient when no backdrop) */}
+      {/* Background Image (with poster fallback, then gradient fallback) */}
       <div
-        className={`featured-backdrop ${isTransitioning ? 'fading' : ''}`}
+        className={`featured-backdrop ${isTransitioning ? 'fading' : ''} ${isFallback ? 'fallback' : ''}`}
         style={{
           backgroundImage: current.backdrop_path
             ? `url(${getBackdropUrl(current.backdrop_path, 'original')})`
-            : 'linear-gradient(135deg, var(--bg-secondary) 0%, var(--bg-tertiary) 100%)'
+            : (current.poster_path
+              ? `url(${getPosterUrl(current.poster_path)})`
+              : 'linear-gradient(135deg, var(--bg-secondary) 0%, var(--bg-tertiary) 100%)')
         }}
       />
 
