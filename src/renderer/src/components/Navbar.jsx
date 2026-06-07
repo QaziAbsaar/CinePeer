@@ -1,6 +1,6 @@
 import { useState, useEffect, useRef, useCallback } from 'react'
 import { NavLink, useLocation } from 'react-router-dom'
-import { Search, Download, Settings, Film, X, Minus, Square } from 'lucide-react'
+import { Search, Download, Settings, X, Minus, Square } from 'lucide-react'
 import useAppStore from '../store/useAppStore'
 import useTorrentStore from '../store/useTorrentStore'
 import './Navbar.css'
@@ -69,7 +69,7 @@ export default function Navbar() {
       <div className="navbar-content">
         {/* Logo */}
         <NavLink to="/" className="navbar-logo titlebar-no-drag">
-          <Film size={24} className="logo-icon" />
+          <img src="/icon.svg" alt="CinePeer" className="nav-logo-icon" />
           <span className="logo-text font-display">CINEPEER</span>
         </NavLink>
 

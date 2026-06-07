@@ -9,7 +9,75 @@
     "dev": "electron-vite dev -- --disable-gpu --in-process-gpu",
     "build": "electron-vite build",
     "preview": "electron-vite preview",
-    "start": "electron-vite preview"
+    "start": "electron-vite preview",
+    "dist": "npm run build && electron-builder",
+    "dist:win": "npm run build && electron-builder --win",
+    "dist:mac": "npm run build && electron-builder --mac",
+    "dist:linux": "npm run build && electron-builder --linux"
+  },
+  "build": {
+    "appId": "com.cinepeer.app",
+    "productName": "CinePeer",
+    "directories": {
+      "output": "release"
+    },
+    "files": [
+      "out/**/*",
+      "public/**/*"
+    ],
+    "extraResources": [
+      "icon.png"
+    ],
+    "win": {
+      "target": [
+        {
+          "target": "nsis",
+          "arch": ["x64"]
+        }
+      ],
+      "icon": "icon.png"
+    },
+    "nsis": {
+      "oneClick": false,
+      "allowToChangeInstallationDirectory": true,
+      "perMachine": false,
+      "runAfterFinish": true,
+      "createDesktopShortcut": true,
+      "createStartMenuShortcut": true,
+      "shortcutName": "CinePeer",
+      "installerIcon": "icon.png",
+      "uninstallerIcon": "icon.png",
+      "installerHeaderIcon": "icon.png",
+      "license": null
+    },
+    "mac": {
+      "target": [
+        {
+          "target": "dmg",
+          "arch": ["x64", "arm64"]
+        }
+      ],
+      "icon": "icon.png",
+      "category": "public.app-category.video"
+    },
+    "dmg": {
+      "title": "CinePeer Installer",
+      "icon": "icon.png",
+      "iconSize": 128,
+      "contents": [
+        { "x": 140, "y": 220, "type": "file" },
+        { "x": 430, "y": 220, "type": "link", "path": "/Applications" }
+      ],
+      "window": {
+        "width": 600,
+        "height": 450
+      }
+    },
+    "linux": {
+      "target": ["AppImage", "deb"],
+      "icon": "icon.png",
+      "category": "Video"
+    }
   },
   "dependencies": {
     "axios": "^1.7.3",
@@ -25,6 +93,7 @@
     "electron": "^31.3.1",
     "electron-builder": "^24.13.3",
     "electron-vite": "^2.3.0",
+    "sharp": "^0.34.5",
     "vite": "^5.4.0"
   }
 }
