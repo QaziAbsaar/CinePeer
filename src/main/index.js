@@ -251,6 +251,23 @@ function registerIPC() {
     return result.canceled ? null : result.filePaths[0]
   })
 
+  ipcMain.handle('system:openExternal', async (_, url) => {
+    // On WSL2/Linux without xdg-open, open in a child BrowserWindow instead
+    try {
+      await shell.openExternal(url)
+    } catch {
+      // Fallback: open in new Electron window
+      const child = new BrowserWindow({
+        width: 1000,
+        height: 700,
+        parent: mainWindow,
+        autoHideMenuBar: true,
+        title: 'Trailer'
+      })
+      child.loadURL(url)
+    }
+  })
+
   // ── 1337x scraper (bypass CORS via Node.js) ──────────────
   ipcMain.handle('fetch:html', async (_, url) => {
     const https = require('https')

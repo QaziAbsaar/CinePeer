@@ -14,7 +14,8 @@ contextBridge.exposeInMainWorld('electron', {
     getDownloadPath: () => ipcRenderer.invoke('system:getDownloadPath'),
     getUserDataPath: () => ipcRenderer.invoke('system:getUserDataPath'),
     openFolder: (folderPath) => ipcRenderer.invoke('system:openFolder', folderPath),
-    selectDirectory: () => ipcRenderer.invoke('system:selectDirectory')
+    selectDirectory: () => ipcRenderer.invoke('system:selectDirectory'),
+    openExternal: (url) => ipcRenderer.invoke('system:openExternal', url)
   },
   window: {
     minimize: () => ipcRenderer.send('window:minimize'),

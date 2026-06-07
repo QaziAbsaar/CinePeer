@@ -151,6 +151,29 @@
   opacity: 1 !important;
   transform: translate(-50%, -50%) scale(1.15) !important;
 }
+  border-radius: 6px;
+  background: rgba(255, 255, 255, 0.1);
+  color: #fff;
+  border: 1px solid rgba(255, 255, 255, 0.15);
+  cursor: pointer;
+  font-size: 0.72rem;
+  font-weight: 500;
+  opacity: 0;
+  transform: translateY(4px);
+  transition: opacity 0.2s var(--ease-out) 0.05s, transform 0.2s var(--ease-out) 0.05s, background 0.15s;
+  backdrop-filter: blur(4px);
+  white-space: nowrap;
+}
+
+.media-card-expanded .media-card-trailer-btn {
+  opacity: 0.85;
+  transform: translateY(0);
+}
+
+.media-card-trailer-btn:hover {
+  background: rgba(255, 255, 255, 0.2) !important;
+  opacity: 1 !important;
+}
 
 /* ── Overlay Info ───────────────────────────────────────── */
 .media-card-overlay-info {
