@@ -1,5 +1,5 @@
 import { useState, useEffect, useCallback } from 'react'
-import { X, Star, Clock, Calendar, Play, Plus, Check, ChevronDown, ChevronRight } from 'lucide-react'
+import { X, Star, Clock, Calendar, Play, Plus, Check, Maximize2, Minimize2, ChevronDown, ChevronRight } from 'lucide-react'
 import { getDetails, getBackdropUrl, getProfileUrl, getPosterUrl, lookupByExternalId } from '../services/metadata'
 import { searchMovieTorrents, searchTvTorrents } from '../services/torrentSearch'
 import { GENRES, formatDuration, formatBytes } from '../utils/constants'
@@ -18,6 +18,9 @@ export default function DetailModal() {
   const [loading, setLoading] = useState(false)
   const [torrentLoading, setTorrentLoading] = useState(false)
   const [streamingHash, setStreamingHash] = useState(null)
+  const [trailerKey, setTrailerKey] = useState(null)
+  const [showTrailer, setShowTrailer] = useState(false)
+  const [trailerMaximized, setTrailerMaximized] = useState(false)
   const [expandedSeasons, setExpandedSeasons] = useState(new Set())
 
   // Fetch full details + torrents
@@ -56,6 +59,13 @@ export default function DetailModal() {
         }
         setDetails(detailData)
         setLoading(false)
+
+        // Extract trailer from TMDB videos
+        const videos = detailData?.videos?.results || []
+        const trailer = videos.find(v => v.site === 'YouTube' && v.type === 'Trailer')
+          || videos.find(v => v.site === 'YouTube' && v.type === 'Teaser')
+          || videos.find(v => v.site === 'YouTube')
+        setTrailerKey(trailer?.key || null)
 
         // Fetch torrents from all sources (YTS/TPB for movies, EZTV/TPB for TV)
         const imdbId = detailData?.external_ids?.imdb_id || detailData?.imdb_id || selectedMedia.imdb_id
@@ -216,6 +226,11 @@ export default function DetailModal() {
               {inList ? <Check size={18} /> : <Plus size={18} />}
               {inList ? 'In My List' : 'Add to List'}
             </button>
+            {trailerKey && (
+              <button className="btn btn-secondary" onClick={() => setShowTrailer(true)}>
+                <Play size={18} /> Trailer
+              </button>
+            )}
           </div>
 
           {/* Genres */}
@@ -432,6 +447,32 @@ export default function DetailModal() {
             )}
           </div>
         </div>
+
+        {/* ── Trailer Modal ──────────────────────────────── */}
+        {showTrailer && trailerKey && (
+          <div className={`trailer-overlay ${trailerMaximized ? 'trailer-maximized' : ''}`} onClick={() => setShowTrailer(false)}>
+            <div className="trailer-container" onClick={(e) => e.stopPropagation()}>
+              <div className="trailer-header">
+                <span className="trailer-title">Trailer</span>
+                <div className="trailer-header-actions">
+                  <button className="btn-icon trailer-btn" onClick={() => setTrailerMaximized(v => !v)} title={trailerMaximized ? 'Minimize' : 'Maximize'}>
+                    {trailerMaximized ? <Minimize2 size={18} /> : <Maximize2 size={18} />}
+                  </button>
+                  <button className="btn-icon trailer-btn" onClick={() => setShowTrailer(false)}><X size={18} /></button>
+                </div>
+              </div>
+              <div className="trailer-iframe-wrapper">
+                <iframe
+                  src={`https://www.youtube-nocookie.com/embed/${trailerKey}?autoplay=1&rel=0`}
+                  title="Trailer"
+                  allow="autoplay; encrypted-media; fullscreen"
+                  allowFullScreen
+                  className="trailer-iframe"
+                />
+              </div>
+            </div>
+          </div>
+        )}
       </div>
     </div>
   )
