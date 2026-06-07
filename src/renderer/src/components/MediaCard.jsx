@@ -59,7 +59,7 @@ export default function MediaCard({ item, mediaType = 'movie', badge = null }) {
   const year = (item.release_date || item.first_air_date || '').substring(0, 4)
   const rating = item.vote_average ? item.vote_average.toFixed(1) : null
   const runtime = item.runtime
-  const posterUrl = getPosterUrl(item.poster_path, 'medium')
+  const posterUrl = getPosterUrl(item.poster_path || item.yts_poster, 'medium')
   const genreNames = item.genre_names?.length > 0
     ? item.genre_names.slice(0, 3)
     : (item.genre_ids || []).slice(0, 3).map(id => GENRES[id]).filter(Boolean)
