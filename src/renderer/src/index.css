@@ -329,6 +329,14 @@ ul, ol {
   color: var(--text-secondary);
 }
 
+.badge-source {
+  background: rgba(100, 200, 255, 0.12);
+  border: 1px solid rgba(100, 200, 255, 0.25);
+  color: #64C8FF;
+  font-size: 0.6rem;
+  margin-left: 4px;
+}
+
 /* ── Genre Pill ─────────────────────────────────────────── */
 .genre-pill {
   display: inline-block;

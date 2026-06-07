@@ -1,8 +1,7 @@
 import { useState, useEffect, useCallback } from 'react'
 import { X, Star, Clock, Calendar, Play, Plus, Check, ChevronDown, ChevronRight } from 'lucide-react'
 import { getDetails, getBackdropUrl, getProfileUrl, getPosterUrl, lookupByExternalId } from '../services/metadata'
-import { searchByImdbId } from '../services/yts'
-import { getTorrents } from '../services/eztv'
+import { searchMovieTorrents, searchTvTorrents } from '../services/torrentSearch'
 import { GENRES, formatDuration, formatBytes } from '../utils/constants'
 import useMediaStore from '../store/useMediaStore'
 import useTorrentStore from '../store/useTorrentStore'
@@ -58,16 +57,13 @@ export default function DetailModal() {
         setDetails(detailData)
         setLoading(false)
 
-        // Fetch torrents
+        // Fetch torrents from all sources (YTS/TPB for movies, EZTV/TPB for TV)
         const imdbId = detailData?.external_ids?.imdb_id || detailData?.imdb_id || selectedMedia.imdb_id
         if (imdbId) {
-          if (selectedMediaType === 'movie') {
-            const ytsMovie = await searchByImdbId(imdbId)
-            setTorrents(ytsMovie?.torrents || [])
-          } else {
-            const result = await getTorrents({ imdbId })
-            setTorrents(result.torrents || [])
-          }
+          const results = selectedMediaType === 'movie'
+            ? await searchMovieTorrents(imdbId)
+            : await searchTvTorrents(imdbId)
+          setTorrents(results)
         }
       } catch (err) {
         console.error('Failed to fetch details:', err)
@@ -297,6 +293,7 @@ export default function DetailModal() {
                             <tr>
                               <th>Ep.</th>
                               <th>Quality</th>
+                              <th>Source</th>
                               <th>Size</th>
                               <th colSpan={2}>Health</th>
                               <th></th>
@@ -323,6 +320,9 @@ export default function DetailModal() {
                                   </td>
                                   <td>
                                     <span className="badge badge-quality">{torrent.quality || 'Unknown'}</span>
+                                  </td>
+                                  <td>
+                                    {torrent.source && <span className="badge badge-source">{torrent.source.toUpperCase()}</span>}
                                   </td>
                                   <td className="text-meta">{torrent.size || formatBytes(torrent.size_bytes || 0)}</td>
                                   <td>
@@ -367,6 +367,7 @@ export default function DetailModal() {
                   <thead>
                     <tr>
                       <th>Quality</th>
+                      <th>Source</th>
                       <th>Size</th>
                       <th colSpan={2}>Health</th>
                       <th></th>
