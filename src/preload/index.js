@@ -7,6 +7,9 @@ contextBridge.exposeInMainWorld('electron', {
     destroy: (infoHash) => ipcRenderer.invoke('torrent:destroy', infoHash),
     listActive: () => ipcRenderer.invoke('torrent:list')
   },
+  fetch: {
+    html: (url) => ipcRenderer.invoke('fetch:html', url)
+  },
   system: {
     getDownloadPath: () => ipcRenderer.invoke('system:getDownloadPath'),
     getUserDataPath: () => ipcRenderer.invoke('system:getUserDataPath'),

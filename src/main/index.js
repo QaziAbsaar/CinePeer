@@ -250,6 +250,18 @@ function registerIPC() {
     return result.canceled ? null : result.filePaths[0]
   })
 
+  // ── 1337x scraper (bypass CORS via Node.js) ──────────────
+  ipcMain.handle('fetch:html', async (_, url) => {
+    const https = require('https')
+    return new Promise((resolve, reject) => {
+      https.get(url, { headers: { 'User-Agent': 'Mozilla/5.0' }, timeout: 10000 }, (res) => {
+        let data = ''
+        res.on('data', chunk => data += chunk)
+        res.on('end', () => resolve(data))
+      }).on('error', reject).on('timeout', function () { this.destroy(); reject(new Error('timeout')) })
+    })
+  })
+
   // ── Window controls (for frameless Linux) ────────────────
   ipcMain.on('window:minimize', () => mainWindow?.minimize())
   ipcMain.on('window:maximize', () => {
