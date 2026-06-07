@@ -1,5 +1,5 @@
 import { useState, useEffect, useCallback } from 'react'
-import { X, Star, Clock, Calendar, Play, Plus, Check, ExternalLink } from 'lucide-react'
+import { X, Star, Clock, Calendar, Play, Plus, Check, ChevronDown, ChevronRight } from 'lucide-react'
 import { getDetails, getBackdropUrl, getProfileUrl, lookupByExternalId } from '../services/metadata'
 import { searchByImdbId } from '../services/yts'
 import { getTorrents } from '../services/eztv'
@@ -19,6 +19,7 @@ export default function DetailModal() {
   const [loading, setLoading] = useState(false)
   const [torrentLoading, setTorrentLoading] = useState(false)
   const [streamingHash, setStreamingHash] = useState(null)
+  const [expandedSeasons, setExpandedSeasons] = useState(new Set())
 
   // Fetch full details + torrents
   useEffect(() => {
@@ -69,6 +70,39 @@ export default function DetailModal() {
 
     fetchData()
   }, [selectedMedia, selectedMediaType])
+
+  // Auto-expand latest season when TV torrents load
+  useEffect(() => {
+    if (selectedMediaType !== 'tv' || torrents.length === 0) return
+    const maxSeason = Math.max(...torrents.map(t => t.season || 0))
+    if (maxSeason > 0) setExpandedSeasons(new Set([maxSeason]))
+  }, [torrents, selectedMediaType])
+
+  // Group TV torrents by season number
+  const groupBySeason = useCallback((tList) => {
+    const groups = {}
+    for (const t of tList) {
+      const season = t.season || 0
+      if (!groups[season]) groups[season] = []
+      groups[season].push(t)
+    }
+    // Sort seasons descending (latest first), episodes ascending within each
+    return Object.entries(groups)
+      .map(([season, eps]) => ({
+        season: parseInt(season, 10),
+        episodes: eps.sort((a, b) => (a.episode || 0) - (b.episode || 0))
+      }))
+      .sort((a, b) => b.season - a.season)
+  }, [])
+
+  const toggleSeason = useCallback((season) => {
+    setExpandedSeasons(prev => {
+      const next = new Set(prev)
+      if (next.has(season)) next.delete(season)
+      else next.add(season)
+      return next
+    })
+  }, [])
 
   // Close on Escape
   useEffect(() => {
@@ -204,76 +238,166 @@ export default function DetailModal() {
 
           {/* Torrents */}
           <div className="detail-torrents-section">
-            <h3 className="detail-section-title">Available Streams</h3>
+            <h3 className="detail-section-title">
+              {selectedMediaType === 'tv' ? 'Episodes' : 'Available Streams'}
+            </h3>
             {torrentLoading ? (
               <div className="torrent-loading">
                 <div className="spinner" />
                 <span>Finding sources...</span>
               </div>
             ) : torrents.length > 0 ? (
-              <table className="torrent-table">
-                <thead>
-                  <tr>
-                    <th>Quality</th>
-                    {selectedMediaType === 'tv' && <th>Episode</th>}
-                    <th>Size</th>
-                    <th colSpan={2}>Health</th>
-                    <th></th>
-                  </tr>
-                </thead>
-                <tbody>
-                  {torrents.map((torrent, idx) => {
-                    const seeds = torrent.seeds || 0
-                    const peers = torrent.peers || 0
-                    const health = seeds >= 100 ? 'excellent' : seeds >= 30 ? 'good' : seeds >= 5 ? 'okay' : seeds > 0 ? 'low' : 'dead'
-                    const healthColors = {
-                      excellent: '#00E676',
-                      good: '#00D4FF',
-                      okay: '#FFD700',
-                      low: '#FF9800',
-                      dead: '#E94560'
-                    }
-                    return (
-                    <tr key={idx} className={health === 'dead' ? 'torrent-row-dead' : ''}>
-                      <td>
-                        <span className="badge badge-quality">{torrent.quality || 'Unknown'}</span>
-                      </td>
-                      {selectedMediaType === 'tv' && (
-                        <td>S{String(torrent.season || 0).padStart(2, '0')}E{String(torrent.episode || 0).padStart(2, '0')}</td>
-                      )}
-                      <td className="text-meta">{torrent.size || formatBytes(torrent.size_bytes || 0)}</td>
-                      <td>
-                        <span className="seed-count" style={{ color: healthColors[health] }}>
-                          {seeds}
+              selectedMediaType === 'tv' ? (
+                // ── TV: grouped by season ─────────────────────
+                <div className="tv-seasons">
+                  {groupBySeason(torrents).map(({ season, episodes }) => (
+                    <div key={season} className={`season-group ${season === 0 ? 'season-unknown' : ''}`}>
+                      <button
+                        className="season-header"
+                        onClick={() => toggleSeason(season)}
+                      >
+                        {expandedSeasons.has(season) ? (
+                          <ChevronDown size={18} />
+                        ) : (
+                          <ChevronRight size={18} />
+                        )}
+                        <span className="season-title">
+                          {season > 0 ? `Season ${season}` : 'Other'}
                         </span>
-                        <span className="text-meta" style={{ marginLeft: 2 }}>/ {peers}</span>
-                      </td>
-                      <td>
-                        <span className="health-dot" style={{ background: healthColors[health] }} />
-                        <span className="health-label text-meta">{health}</span>
-                      </td>
-                      <td>
-                        <button
-                          className={`btn btn-sm ${health === 'dead' ? 'btn-secondary' : 'btn-primary'}`}
-                          onClick={() => handleStream(torrent)}
-                          disabled={streamingHash !== null}
-                          title={health === 'dead' ? 'No seeds available — stream may not start' : ''}
-                        >
-                          {streamingHash === (torrent.hash || idx) ? (
-                            <div className="spinner" style={{ width: 14, height: 14 }} />
-                          ) : (
-                            <>
-                              <Play size={14} fill="currentColor" />
-                              {health === 'dead' ? 'Unavailable' : 'Stream'}
-                            </>
-                          )}
-                        </button>
-                      </td>
+                        <span className="season-count text-meta">{episodes.length} ep.</span>
+                      </button>
+                      {expandedSeasons.has(season) && (
+                        <table className="torrent-table">
+                          <thead>
+                            <tr>
+                              <th>Ep.</th>
+                              <th>Quality</th>
+                              <th>Size</th>
+                              <th colSpan={2}>Health</th>
+                              <th></th>
+                            </tr>
+                          </thead>
+                          <tbody>
+                            {episodes.map((torrent, idx) => {
+                              const seeds = torrent.seeds || 0
+                              const peers = torrent.peers || 0
+                              const health = seeds >= 100 ? 'excellent' : seeds >= 30 ? 'good' : seeds >= 5 ? 'okay' : seeds > 0 ? 'low' : 'dead'
+                              const healthColors = {
+                                excellent: '#00E676',
+                                good: '#00D4FF',
+                                okay: '#FFD700',
+                                low: '#FF9800',
+                                dead: '#E94560'
+                              }
+                              return (
+                                <tr key={idx} className={health === 'dead' ? 'torrent-row-dead' : ''}>
+                                  <td>
+                                    <span className="episode-badge">
+                                      S{String(season).padStart(2, '0')}E{String(torrent.episode || 0).padStart(2, '0')}
+                                    </span>
+                                  </td>
+                                  <td>
+                                    <span className="badge badge-quality">{torrent.quality || 'Unknown'}</span>
+                                  </td>
+                                  <td className="text-meta">{torrent.size || formatBytes(torrent.size_bytes || 0)}</td>
+                                  <td>
+                                    <span className="seed-count" style={{ color: healthColors[health] }}>
+                                      {seeds}
+                                    </span>
+                                    <span className="text-meta" style={{ marginLeft: 2 }}>/ {peers}</span>
+                                  </td>
+                                  <td>
+                                    <span className="health-dot" style={{ background: healthColors[health] }} />
+                                    <span className="health-label text-meta">{health}</span>
+                                  </td>
+                                  <td>
+                                    <button
+                                      className={`btn btn-sm ${health === 'dead' ? 'btn-secondary' : 'btn-primary'}`}
+                                      onClick={() => handleStream(torrent)}
+                                      disabled={streamingHash !== null}
+                                      title={health === 'dead' ? 'No seeds available — stream may not start' : ''}
+                                    >
+                                      {streamingHash === (torrent.hash || `${season}-${idx}`) ? (
+                                        <div className="spinner" style={{ width: 14, height: 14 }} />
+                                      ) : (
+                                        <>
+                                          <Play size={14} fill="currentColor" />
+                                          {health === 'dead' ? 'Unavailable' : 'Stream'}
+                                        </>
+                                      )}
+                                    </button>
+                                  </td>
+                                </tr>
+                              )
+                            })}
+                          </tbody>
+                        </table>
+                      )}
+                    </div>
+                  ))}
+                </div>
+              ) : (
+                // ── Movie: flat table ──────────────────────────
+                <table className="torrent-table">
+                  <thead>
+                    <tr>
+                      <th>Quality</th>
+                      <th>Size</th>
+                      <th colSpan={2}>Health</th>
+                      <th></th>
                     </tr>
-                    )
-                  })}
-                </tbody>
-              </table>
+                  </thead>
+                  <tbody>
+                    {torrents.map((torrent, idx) => {
+                      const seeds = torrent.seeds || 0
+                      const peers = torrent.peers || 0
+                      const health = seeds >= 100 ? 'excellent' : seeds >= 30 ? 'good' : seeds >= 5 ? 'okay' : seeds > 0 ? 'low' : 'dead'
+                      const healthColors = {
+                        excellent: '#00E676',
+                        good: '#00D4FF',
+                        okay: '#FFD700',
+                        low: '#FF9800',
+                        dead: '#E94560'
+                      }
+                      return (
+                      <tr key={idx} className={health === 'dead' ? 'torrent-row-dead' : ''}>
+                        <td>
+                          <span className="badge badge-quality">{torrent.quality || 'Unknown'}</span>
+                        </td>
+                        <td className="text-meta">{torrent.size || formatBytes(torrent.size_bytes || 0)}</td>
+                        <td>
+                          <span className="seed-count" style={{ color: healthColors[health] }}>
+                            {seeds}
+                          </span>
+                          <span className="text-meta" style={{ marginLeft: 2 }}>/ {peers}</span>
+                        </td>
+                        <td>
+                          <span className="health-dot" style={{ background: healthColors[health] }} />
+                          <span className="health-label text-meta">{health}</span>
+                        </td>
+                        <td>
+                          <button
+                            className={`btn btn-sm ${health === 'dead' ? 'btn-secondary' : 'btn-primary'}`}
+                            onClick={() => handleStream(torrent)}
+                            disabled={streamingHash !== null}
+                            title={health === 'dead' ? 'No seeds available — stream may not start' : ''}
+                          >
+                            {streamingHash === (torrent.hash || idx) ? (
+                              <div className="spinner" style={{ width: 14, height: 14 }} />
+                            ) : (
+                              <>
+                                <Play size={14} fill="currentColor" />
+                                {health === 'dead' ? 'Unavailable' : 'Stream'}
+                              </>
+                            )}
+                          </button>
+                        </td>
+                      </tr>
+                      )
+                    })}
+                  </tbody>
+                </table>
+              )
             ) : (
               <div className="no-torrents">
                 <p>No streams available for this title.</p>
