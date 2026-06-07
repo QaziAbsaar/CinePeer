@@ -33,11 +33,11 @@ export default function MoviesPage() {
       }
       if (filters.genre !== 'All') params.genre = filters.genre.toLowerCase()
       if (filters.quality !== 'All') params.quality = filters.quality
-      if (filters.year !== 'All') params.year = filters.year
       if (filters.minimum_rating > 0) params.minimum_rating = filters.minimum_rating
+      // Year filter is done client-side (YTS API mirror ignores year param)
 
       const result = await listMovies(params)
-      const newMovies = (result.movies || []).map(m => ({
+      let newMovies = (result.movies || []).map(m => ({
         id: m.id,
         title: m.title,
         name: m.title,
@@ -53,12 +53,20 @@ export default function MoviesPage() {
         yts_data: m
       }))
 
+      // Client-side year filter (YTS API mirror ignores year param)
+      const unfilteredCount = newMovies.length
+      if (filters.year !== 'All') {
+        newMovies = newMovies.filter(m =>
+          m.release_date?.substring(0, 4) === String(filters.year)
+        )
+      }
+
       if (reset) {
         setMovies(newMovies)
       } else {
         setMovies(prev => [...prev, ...newMovies])
       }
-      setHasMore(newMovies.length >= 20)
+      setHasMore(unfilteredCount >= 20)
     } catch (err) {
       console.error('Failed to fetch movies:', err)
       setHasMore(false)

@@ -59,7 +59,7 @@ export default function DetailModal() {
         setLoading(false)
 
         // Fetch torrents
-        const imdbId = detailData.external_ids?.imdb_id || detailData.imdb_id
+        const imdbId = detailData?.external_ids?.imdb_id || detailData?.imdb_id || selectedMedia.imdb_id
         if (imdbId) {
           if (selectedMediaType === 'movie') {
             const ytsMovie = await searchByImdbId(imdbId)
@@ -163,6 +163,11 @@ export default function DetailModal() {
   const cast = details?.credits?.cast?.slice(0, 12) || []
   const inList = isInWatchlist(selectedMedia.id, selectedMediaType)
   const backdropUrl = getBackdropUrl(details?.backdrop_path || selectedMedia.backdrop_path, 'original')
+  const posterUrl = getPosterUrl(
+    details?.poster_path || selectedMedia.poster_path ||
+    selectedMedia.yts_data?.medium_cover_image || selectedMedia.yts_poster,
+    'medium'
+  )
 
   return (
     <div className="modal-overlay" onClick={clearSelectedMedia} id="detail-modal">
@@ -187,8 +192,20 @@ export default function DetailModal() {
           </div>
         </div>
 
-        {/* Body */}
-        <div className="detail-body">
+        {/* Content: Poster + Body */}
+        <div className="detail-content">
+          {/* Poster Column */}
+          <div className="detail-poster-col">
+            <img
+              src={posterUrl}
+              alt={title}
+              className="detail-poster"
+              loading="lazy"
+            />
+          </div>
+
+          {/* Body */}
+          <div className="detail-body">
           {/* Actions */}
           <div className="detail-actions">
             <button
@@ -417,5 +434,6 @@ export default function DetailModal() {
         </div>
       </div>
     </div>
+  </div>
   )
 }
