@@ -175,6 +175,17 @@ export default function DetailModal() {
         {/* Header with Backdrop */}
         <div className="detail-header" style={{ backgroundImage: backdropUrl ? `url(${backdropUrl})` : 'none' }}>
           <div className="detail-header-gradient" />
+
+          {/* Poster inside header (same stacking context as title) */}
+          <div className="detail-poster-wrapper">
+            <img
+              src={posterUrl}
+              alt={title}
+              className="detail-poster"
+              loading="lazy"
+            />
+          </div>
+
           <button className="detail-close btn-icon" onClick={clearSelectedMedia}>
             <X size={20} />
           </button>
@@ -192,20 +203,8 @@ export default function DetailModal() {
           </div>
         </div>
 
-        {/* Content: Poster + Body */}
-        <div className="detail-content">
-          {/* Poster Column */}
-          <div className="detail-poster-col">
-            <img
-              src={posterUrl}
-              alt={title}
-              className="detail-poster"
-              loading="lazy"
-            />
-          </div>
-
-          {/* Body */}
-          <div className="detail-body">
+        {/* Body — now directly under modal-content */}
+        <div className="detail-body">
           {/* Actions */}
           <div className="detail-actions">
             <button
@@ -434,6 +433,5 @@ export default function DetailModal() {
         </div>
       </div>
     </div>
-  </div>
   )
 }

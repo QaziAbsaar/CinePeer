@@ -19,6 +19,7 @@
 - **YTS→TMDB ID mapping**: YTS-sourced movies use IMDb ID lookup to find correct TMDB entry
 - **TV season grouping**: Episodes grouped by season in collapsible sections (latest season expanded by default)
 - **Hover-reveal cards**: 300ms delayed, GPU-accelerated hover animation with blur, play button, expanded details
+- **README**: ASCII art CINEPEER banner at top using `<pre align="center">`
 
 ### Build Status
 ✅ `npm run build` — passes clean. One informational warning about dynamic import chunking (harmless).
@@ -91,6 +92,12 @@ getActiveSource()                validateApiKey(key)       → TMDB
 isUsingOmdb()                    validateOmdbKey(key)      → OMDb
                                  validateFanartKey(key)    → Fanart.tv
                                  validateTraktKey(clientId)→ Trakt.tv
+
+Image Helpers (overridden from tmdb.js)
+─────────────────────
+getPosterUrl(path, size)  — Returns PLACEHOLDER_IMAGE if path is null
+getBackdropUrl(path, size) — Returns null if path is null
+getProfileUrl(path, size)  — Returns null if path is null
 ```
 
 Active source values: `'tmdb'` | `'omdb'`
@@ -136,7 +143,7 @@ Internal helpers: `srtToWebVtt(srt)`, `webVttToDataUri(webvtt)`, `setApiKey(key)
 
 ---
 
-## 4. Store — `useAppStore` (Zustand)
+## 4. Store — `useMediaStore` (Zustand)
 
 ### State & localStorage Keys
 
@@ -157,6 +164,19 @@ Internal helpers: `srtToWebVtt(srt)`, `webVttToDataUri(webvtt)`, `setApiKey(key)
 | — | — | `toggleDownloadManager()` / `closeDownloadManager()` | UI state |
 
 **`isSetupComplete`** — returns `true` if `sv_tmdb_api_key` exists in localStorage.
+
+### Filters State
+```
+filters: {
+  sort_by: 'date_added',
+  genre: 'All',
+  quality: 'All',
+  year: 'All',
+  minimum_rating: 0
+}
+setFilter(key, value)  — updates single filter key, creates new filters object
+resetFilters()          — resets all filters to defaults
+```
 
 ---
 
@@ -203,6 +223,14 @@ IMAGE_SIZES = {
 ### Image Helper Logic (in `metadata.js`)
 - If `path` starts with `http` → pass through as-is (OMDb/Fanart full URLs)
 - Otherwise → prepend `TMDB_IMAGE_BASE`/size (TMDB relative paths)
+- `getPosterUrl`: returns `PLACEHOLDER_IMAGE` (SVG data-URI) if path is null
+- `getBackdropUrl`: returns `null` if path is null
+- `getProfileUrl`: returns `null` if path is null
+
+### Year Options (generated at runtime)
+```
+YEAR_OPTIONS = ['All', '2026', '2025', ..., '1970']
+```
 
 ---
 
@@ -224,13 +252,34 @@ connect-src: ... https://movies-api.accel.li https://eztv.wf ...
 - **GPU**: `will-change: transform` on card, `will-change: transform, filter` on image
 - **Zero layout shift**: only `transform: scale()` and `opacity` animated
 - **Z-index**: hovered = 10, expanded = 100
+- **`inList`**: declared BEFORE `handleWatchlist` to avoid Temporal Dead Zone error
 
 ### DetailModal (`src/renderer/src/components/DetailModal.jsx`)
+- **Poster**: Rendered inside `.detail-header` via `.detail-poster-wrapper` (position: absolute, bottom: -80px, z-index: 3). Poster URL resolved from `details?.poster_path` → `selectedMedia.poster_path` → `selectedMedia.yts_data?.medium_cover_image` → `selectedMedia.yts_poster` using `getPosterUrl()`.
+- **Backdrop**: From `details?.backdrop_path || selectedMedia.backdrop_path`. YTS movies now map `m.large_cover_image` to `backdrop_path`.
+- **Header content**: Has `z-index: 4` (above poster) and `padding-left: 260px` to avoid poster overlap.
+- **Torrent fetching**: IMDB ID resolved via `detailData?.external_ids?.imdb_id || detailData?.imdb_id || selectedMedia.imdb_id` — safe fallback when TMDB lookup fails.
 - **Torrent fetching**: `selectedMediaType === 'movie'` → `searchByImdbId(imdbId)`, else → `getTorrents({ imdbId })`
 - **TV season grouping**: `groupBySeason(torrents)` utility returns `[{season, episodes}]` sorted descending
 - **Season expansion**: `expandedSeasons` (Set), latest season auto-expanded on mount
 - **YTS ID detection**: if `selectedMedia.yts_data` exists, uses `lookupByExternalId(imdbId)` instead of passing YTS ID to TMDB directly
 - **Health colors**: `excellent(🟢100+)` / `good(🔵30-99)` / `okay(🟡5-29)` / `low(🟠1-4)` / `dead(🔴0)`
+
+### MoviesPage (`src/renderer/src/pages/MoviesPage.jsx`)
+- **YTS movie mapping**: Maps YTS fields to shape expected by MediaCard:
+  - `id: m.id` (YTS numeric ID)
+  - `imdb_id: m.imdb_code ? `tt${m.imdb_code}` : null`
+  - `poster_path: null` (no TMDB poster; YTS poster in `yts_poster`)
+  - `backdrop_path: m.large_cover_image || null`
+  - `yts_poster: m.medium_cover_image`
+  - `release_date: String(m.year)`
+  - `yts_data: m` (raw YTS payload for TMDB lookup in DetailModal)
+- **Year filter**: Done client-side after fetch (`movies-api.accel.li` ignores `year` param). `hasMore` based on `unfilteredCount` so pagination continues.
+- **Infinite scroll**: IntersectionObserver with 400px rootMargin, guarded by `fetchingRef`.
+
+### YTSMovieCard (`src/renderer/src/pages/MoviesPage.jsx` — internal component)
+- Same hover/expand pattern as MediaCard
+- **`inList`**: declared BEFORE `handleWatchlist` to avoid TDZ error
 
 ### PlayerPage (`src/renderer/src/pages/PlayerPage.jsx`)
 - Streams via WebTorrent in Electron's main process
@@ -239,10 +288,10 @@ connect-src: ... https://movies-api.accel.li https://eztv.wf ...
 
 ---
 
-## 9. Bugs Found & Fixed (2026-06-07 Session)
+## 9. Bugs Found & Fixed
 
 | # | Bug | Fix |
-|---|-----|-----|
+|---|-----|------|
 | 1 | YTS `yts.mx` NXDOMAIN — all movie torrents failed | Changed to `movies-api.accel.li/api/v2` |
 | 2 | EZTV `eztv.re` Cloudflare-blocked — all TV torrents failed | Changed to `eztv.wf/api` |
 | 3 | Movie posters blocked by CSP (images on `yts.bz`) | Added `yts.bz` and `img.yts.bz` to `img-src` |
@@ -250,6 +299,12 @@ connect-src: ... https://movies-api.accel.li https://eztv.wf ...
 | 5 | Subtitle search always `type='movie'` — TV subs unfindable | Made `type` optional, caller decides |
 | 6 | SRT parser replaced ALL commas with dots | Regex `(\d{2}:\d{2}:\d{2}),(\d{3})` targets only timestamps |
 | 7 | YTS movie IDs silently mapped to wrong TMDB entries | YTS items use `lookupByExternalId(imdbId)` first |
+| 8 | **`inList` TDZ error** — `Cannot access 'inList' before initialization` on MediaCard/YTSMovieCard render | Moved `const inList = isInWatchlist(...)` above `handleWatchlist` definition in both `MediaCard.jsx` and `MoviesPage.jsx` |
+| 9 | **DetailModal missing poster** — no poster image element in modal | Added `.detail-poster-wrapper` inside `.detail-header` with `getPosterUrl()` resolving from TMDB details → selectedMedia → YTS `yts_data.medium_cover_image` |
+| 10 | **DetailModal null detailData crash** — `detailData.imdb_id` threw TypeError when TMDB lookup failed | Changed to `detailData?.external_ids?.imdb_id || detailData?.imdb_id || selectedMedia.imdb_id` |
+| 11 | **Year filter ignored by YTS mirror** — `movies-api.accel.li` ignores `year` query param (confirmed via curl) | Client-side filtering: `filters.year !== 'All'` → filter `newMovies` by `release_date` substring. `hasMore` based on `unfilteredCount`. |
+| 12 | **YTS movies had no backdrop** — `backdrop_path` always null due to `m.large_cover_image ? null : null` ternary | Changed to `backdrop_path: m.large_cover_image || null` |
+| 13 | **DetailModal title obscured by poster** — poster (in `.detail-content`, later sibling) rendered above title (in `.detail-header`) due to DOM paint order | Moved poster inside `.detail-header`, increased `detail-header-content` z-index to 4 (above poster's 3), added `padding-left: 260px` |
 
 ---
 
@@ -261,6 +316,7 @@ connect-src: ... https://movies-api.accel.li https://eztv.wf ...
 2. **Continue watching** — Save playback position per title and offer resume
 3. **Playback speed control** — 0.5x–2x in PlayerPage
 4. **TV show full episode browsing** — Currently shows are browsable by category and episodes appear in DetailModal grouped by season, but not playable per-episode via a dedicated season/episode selector page
+5. **Subtitle type param for TV** — PlayerPage fetches subtitles without passing `type: 'episode'`, which may reduce accuracy for TV shows
 
 ### 🟢 Housekeeping
 
@@ -279,3 +335,7 @@ connect-src: ... https://movies-api.accel.li https://eztv.wf ...
 - **Images blocked**: Check CSP in `src/main/index.js` — add any new image-serving domains to `img-src`.
 - **Wrong movie details**: If a YTS movie shows wrong details, ensure `yts_data` is present on the media object so DetailModal uses the IMDb lookup path.
 - **Hover card not expanding**: Check that `mountedRef.current` is still `true` when the 300ms timer fires.
+- **`inList` TDZ errors**: If you see `Cannot access 'inList' before initialization`, ensure `const inList = isInWatchlist(...)` is declared ABOVE any `handleWatchlist` callback that references it.
+- **Year filter not filtering**: The `movies-api.accel.li` mirror ignores the `year` parameter. Client-side filtering is applied after fetch. If it's not working, check `MoviesPage.jsx` `fetchMovies` for the `filters.year !== 'All'` block.
+- **DetailModal backdrop missing**: For YTS-sourced movies, ensure `m.large_cover_image` is present in the YTS API response and mapped to `backdrop_path` in `MoviesPage.jsx`.
+- **Poster overlapping title**: The poster is inside `.detail-header` with `z-index: 3`. The title container has `z-index: 4`. If overlap occurs, check these z-index values in `DetailModal.css`.

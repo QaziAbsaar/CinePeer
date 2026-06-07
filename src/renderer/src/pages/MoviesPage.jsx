@@ -42,7 +42,7 @@ export default function MoviesPage() {
         title: m.title,
         name: m.title,
         poster_path: null,
-        backdrop_path: m.large_cover_image ? null : null, // YTS has no backdrop
+        backdrop_path: m.large_cover_image || null, // YTS large_cover_image as backdrop
         imdb_id: m.imdb_code ? `tt${m.imdb_code}` : null,
         yts_poster: m.medium_cover_image,
         vote_average: m.rating,
