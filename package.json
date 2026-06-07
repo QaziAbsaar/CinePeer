@@ -25,17 +25,13 @@
       "out/**/*",
       "public/**/*"
     ],
-    "extraResources": [
-      "icon.png"
-    ],
     "win": {
       "target": [
         {
           "target": "nsis",
           "arch": ["x64"]
         }
-      ],
-      "icon": "icon.png"
+      ]
     },
     "nsis": {
       "oneClick": false,
@@ -45,9 +41,6 @@
       "createDesktopShortcut": true,
       "createStartMenuShortcut": true,
       "shortcutName": "CinePeer",
-      "installerIcon": "icon.png",
-      "uninstallerIcon": "icon.png",
-      "installerHeaderIcon": "icon.png",
       "license": null
     },
     "mac": {
@@ -57,12 +50,10 @@
           "arch": ["x64", "arm64"]
         }
       ],
-      "icon": "icon.png",
       "category": "public.app-category.video"
     },
     "dmg": {
       "title": "CinePeer Installer",
-      "icon": "icon.png",
       "iconSize": 128,
       "contents": [
         { "x": 140, "y": 220, "type": "file" },
@@ -75,7 +66,6 @@
     },
     "linux": {
       "target": ["AppImage", "deb"],
-      "icon": "icon.png",
       "category": "Video"
     }
   },

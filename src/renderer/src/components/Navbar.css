@@ -44,13 +44,6 @@
   filter: drop-shadow(0 0 8px rgba(0, 212, 255, 0.4));
 }
 
-.nav-logo-icon {
-  height: 28px;
-  width: auto;
-  flex-shrink: 0;
-  filter: drop-shadow(0 0 6px rgba(0, 212, 255, 0.3));
-}
-
 .logo-text {
   font-size: 1.5rem;
   color: var(--text-primary);

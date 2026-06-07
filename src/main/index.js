@@ -144,17 +144,6 @@ class TorrentManager {
   }
 }
 
-// ── App icon ────────────────────────────────────────────────
-function getAppIcon() {
-  // Packaged: icon copied to resources via electron-builder extraResources
-  // Dev: icon at project root
-  const iconPath = app.isPackaged
-    ? path.join(process.resourcesPath, 'icon.png')
-    : path.join(__dirname, '../../icon.png')
-  if (fs.existsSync(iconPath)) return iconPath
-  return undefined
-}
-
 // ── Main Process ───────────────────────────────────────────
 let mainWindow = null
 let torrentManager = null
@@ -166,7 +155,6 @@ function createWindow() {
     minWidth: 1024,
     minHeight: 680,
     backgroundColor: '#0F0F0F',
-    icon: getAppIcon(),
     frame: false,
     titleBarStyle: 'hidden',
     webPreferences: {
