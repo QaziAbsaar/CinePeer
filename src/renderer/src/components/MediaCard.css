@@ -1,9 +1,13 @@
+/* ── Card Container ─────────────────────────────────────────── */
 .media-card {
   flex-shrink: 0;
   width: 180px;
   cursor: pointer;
   transition: transform var(--duration-normal) var(--ease-out);
   outline: none;
+  will-change: transform;
+  position: relative;
+  z-index: 0;
 }
 
 .media-card:focus-visible {
@@ -14,7 +18,12 @@
 
 .media-card-hovered {
   transform: scale(1.05);
-  z-index: var(--z-card-hover);
+  z-index: var(--z-card-hover, 10);
+}
+
+.media-card-expanded {
+  transform: scale(1.15);
+  z-index: 100;
 }
 
 /* ── Poster ─────────────────────────────────────────────── */
@@ -36,11 +45,19 @@
   height: 100%;
   object-fit: cover;
   opacity: 0;
-  transition: opacity var(--duration-slow) var(--ease-out);
+  transition: opacity var(--duration-slow) var(--ease-out), filter 0.3s var(--ease-out);
+  will-change: transform, filter;
 }
 
 .media-card-img.loaded {
   opacity: 1;
+}
+
+/* Blur the base image when expanded */
+.media-card-expanded .media-card-img.loaded,
+.media-card-expanded .media-card-no-image {
+  filter: blur(8px) brightness(0.5);
+  transform: scale(1.05);
 }
 
 .media-card-no-image {
@@ -59,52 +76,93 @@
   top: 8px;
   right: 8px;
   z-index: 2;
+  transition: opacity 0.2s;
 }
 
-/* ── Hover Overlay ──────────────────────────────────────── */
+.media-card-expanded .media-card-poster .badge {
+  opacity: 0;
+}
+
+/* ── Overlay ────────────────────────────────────────────── */
 .media-card-overlay {
   position: absolute;
   inset: 0;
-  background: var(--gradient-card);
   display: flex;
   flex-direction: column;
   justify-content: flex-end;
-  padding: 16px 12px;
+  padding: 0;
   opacity: 0;
-  transition: opacity var(--duration-normal) var(--ease-out);
+  transition: opacity 0.25s var(--ease-out) 0.05s;
+  z-index: 3;
 }
 
 .media-card-hovered .media-card-overlay {
   opacity: 1;
 }
 
-.media-card-overlay-actions {
+.media-card-expanded .media-card-overlay {
+  opacity: 1;
+}
+
+.media-card-overlay-bg {
+  position: absolute;
+  inset: 0;
+  background: linear-gradient(
+    180deg,
+    rgba(0, 0, 0, 0) 40%,
+    rgba(0, 0, 0, 0.85) 100%
+  );
+  pointer-events: none;
+}
+
+/* ── Play Button (center of overlay) ────────────────────── */
+.media-card-play-btn {
+  position: absolute;
+  top: 50%;
+  left: 50%;
+  transform: translate(-50%, -50%) scale(0.8);
+  width: 48px;
+  height: 48px;
+  border-radius: 50%;
+  background: var(--accent-primary);
+  color: #fff;
+  border: none;
   display: flex;
   align-items: center;
-  gap: 8px;
-  margin-bottom: 12px;
-  transform: translateY(10px);
-  transition: transform var(--duration-normal) var(--ease-out);
+  justify-content: center;
+  cursor: pointer;
+  opacity: 0;
+  transition: opacity 0.2s var(--ease-out), transform 0.2s var(--ease-out);
+  z-index: 4;
 }
 
-.media-card-hovered .media-card-overlay-actions {
+.media-card-hovered .media-card-play-btn {
+  opacity: 0.9;
+  transform: translate(-50%, -50%) scale(1);
+}
+
+.media-card-expanded .media-card-play-btn {
+  opacity: 1;
+  transform: translate(-50%, -50%) scale(1.1);
+  box-shadow: 0 4px 20px rgba(0, 0, 0, 0.5);
+}
+
+.media-card-play-btn:hover {
+  opacity: 1 !important;
+  transform: translate(-50%, -50%) scale(1.15) !important;
+}
+
+/* ── Overlay Info ───────────────────────────────────────── */
+.media-card-overlay-info {
+  position: relative;
+  padding: 12px;
+  z-index: 1;
+  transform: translateY(8px);
+  transition: transform 0.25s var(--ease-out) 0.05s;
+}
+
+.media-card-hovered .media-card-overlay-info {
   transform: translateY(0);
-}
-
-.btn-sm {
-  padding: 6px 14px;
-  font-size: 0.78rem;
-}
-
-.btn-watchlist {
-  width: 32px;
-  height: 32px;
-}
-
-.btn-watchlist.in-list {
-  background: var(--accent-primary-dim);
-  border-color: var(--accent-primary);
-  color: var(--accent-primary);
 }
 
 .media-card-overlay-title {
@@ -118,13 +176,90 @@
   display: flex;
   align-items: center;
   gap: 8px;
-  font-size: 0.75rem;
+  font-size: 0.72rem;
   color: var(--text-secondary);
+}
+
+/* ── Expanded Details (hidden until isExpanded) ─────────── */
+.media-card-expanded-details {
+  max-height: 0;
+  overflow: hidden;
+  opacity: 0;
+  transition: max-height 0.3s var(--ease-out), opacity 0.2s var(--ease-out) 0.1s;
+  margin-top: 0;
+}
+
+.media-card-expanded .media-card-expanded-details {
+  max-height: 200px;
+  opacity: 1;
+  margin-top: 8px;
+}
+
+.media-card-genres {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 4px;
+  margin-bottom: 6px;
+}
+
+.genre-pill-sm {
+  font-size: 0.62rem;
+  padding: 2px 6px;
+  border-radius: 4px;
+  background: rgba(255, 255, 255, 0.1);
+  color: var(--text-secondary);
+  white-space: nowrap;
+}
+
+.media-card-overview {
+  font-size: 0.72rem;
+  color: rgba(255, 255, 255, 0.7);
+  line-height: 1.4;
+  display: -webkit-box;
+  -webkit-line-clamp: 2;
+  -webkit-box-orient: vertical;
+  overflow: hidden;
+}
+
+/* ── Overlay Actions ────────────────────────────────────── */
+.media-card-overlay-actions {
+  position: absolute;
+  top: 8px;
+  right: 8px;
+  z-index: 4;
+  opacity: 0;
+  transform: scale(0.9);
+  transition: opacity 0.2s var(--ease-out) 0.1s, transform 0.2s var(--ease-out) 0.1s;
+}
+
+.media-card-hovered .media-card-overlay-actions {
+  opacity: 1;
+  transform: scale(1);
+}
+
+.btn-sm {
+  padding: 6px 14px;
+  font-size: 0.78rem;
+}
+
+.btn-watchlist {
+  width: 32px;
+  height: 32px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.btn-watchlist.in-list {
+  background: var(--accent-primary-dim);
+  border-color: var(--accent-primary);
+  color: var(--accent-primary);
 }
 
 /* ── Info Below Poster ──────────────────────────────────── */
 .media-card-info {
   padding: 8px 4px 4px;
+  pointer-events: none;
 }
 
 .media-card-title {
@@ -151,4 +286,13 @@
 
 .media-grid .media-card {
   width: 100%;
+}
+
+/* Allow expanded cards in grid to overflow without clipping */
+.media-grid {
+  padding-bottom: 60px;
+}
+
+.media-grid .media-card-expanded {
+  transform: scale(1.12);
 }

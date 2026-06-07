@@ -1,5 +1,5 @@
 import { useState, useEffect, useRef, useCallback } from 'react'
-import { RefreshCw } from 'lucide-react'
+import { RefreshCw, Play, Plus, Check } from 'lucide-react'
 import { listMovies } from '../services/yts'
 import { getPosterUrl } from '../services/metadata'
 import FilterBar from '../components/FilterBar'
@@ -138,17 +138,55 @@ export default function MoviesPage() {
 // Special card for YTS movies (uses YTS poster instead of TMDB)
 function YTSMovieCard({ movie }) {
   const [imageLoaded, setImageLoaded] = useState(false)
-  const { setSelectedMedia, addToWatchlist, removeFromWatchlist, isInWatchlist } = useMediaStore()
   const [isHovered, setIsHovered] = useState(false)
+  const [isExpanded, setIsExpanded] = useState(false)
+  const hoverTimerRef = useRef(null)
+  const mountedRef = useRef(true)
+  const { setSelectedMedia, addToWatchlist, removeFromWatchlist, isInWatchlist } = useMediaStore()
+
+  useEffect(() => {
+    return () => {
+      mountedRef.current = false
+      if (hoverTimerRef.current) clearTimeout(hoverTimerRef.current)
+    }
+  }, [])
+
+  const handleMouseEnter = () => {
+    setIsHovered(true)
+    hoverTimerRef.current = setTimeout(() => {
+      if (mountedRef.current) setIsExpanded(true)
+    }, 300)
+  }
+
+  const handleMouseLeave = () => {
+    setIsHovered(false)
+    setIsExpanded(false)
+    if (hoverTimerRef.current) {
+      clearTimeout(hoverTimerRef.current)
+      hoverTimerRef.current = null
+    }
+  }
+
+  const handleClick = () => setSelectedMedia(movie, 'movie')
+
+  const handleWatchlist = (e) => {
+    e.stopPropagation()
+    if (inList) {
+      removeFromWatchlist(movie.id, 'movie')
+    } else {
+      addToWatchlist({ ...movie, media_type: 'movie' })
+    }
+  }
 
   const inList = isInWatchlist(movie.id, 'movie')
+  const hasRating = movie.vote_average > 0
 
   return (
     <div
-      className={`media-card ${isHovered ? 'media-card-hovered' : ''}`}
-      onMouseEnter={() => setIsHovered(true)}
-      onMouseLeave={() => setIsHovered(false)}
-      onClick={() => setSelectedMedia(movie, 'movie')}
+      className={`media-card ${isHovered ? 'media-card-hovered' : ''} ${isExpanded ? 'media-card-expanded' : ''}`}
+      onMouseEnter={handleMouseEnter}
+      onMouseLeave={handleMouseLeave}
+      onClick={handleClick}
       role="button"
       tabIndex={0}
     >
@@ -167,14 +205,28 @@ function YTSMovieCard({ movie }) {
         )}
 
         <div className="media-card-overlay">
+          <div className="media-card-overlay-bg" />
+          <button className="media-card-play-btn" onClick={handleClick}>
+            <Play size={22} fill="currentColor" />
+          </button>
           <div className="media-card-overlay-info">
             <div className="media-card-overlay-title truncate">{movie.title}</div>
             <div className="media-card-overlay-meta">
               <span>{movie.release_date}</span>
-              {movie.vote_average > 0 && (
-                <span className="rating-display">★ {movie.vote_average}</span>
-              )}
+              {hasRating && <span className="rating-display">★ {movie.vote_average}</span>}
             </div>
+            <div className="media-card-expanded-details">
+              {movie.overview && <p className="media-card-overview truncate-2">{movie.overview}</p>}
+            </div>
+          </div>
+          <div className="media-card-overlay-actions">
+            <button
+              className={`btn-icon btn-watchlist ${inList ? 'in-list' : ''}`}
+              onClick={handleWatchlist}
+              title={inList ? 'Remove from list' : 'Add to list'}
+            >
+              {inList ? <Check size={16} /> : <Plus size={16} />}
+            </button>
           </div>
         </div>
       </div>
@@ -183,9 +235,7 @@ function YTSMovieCard({ movie }) {
         <div className="media-card-title truncate">{movie.title}</div>
         <div className="media-card-meta text-meta">
           <span>{movie.release_date}</span>
-          {movie.vote_average > 0 && (
-            <span className="rating-display">★ {movie.vote_average}</span>
-          )}
+          {hasRating && <span className="rating-display">★ {movie.vote_average}</span>}
         </div>
       </div>
     </div>
