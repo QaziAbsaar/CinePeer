@@ -1,15 +1,22 @@
 import { create } from 'zustand'
 
 function hasValidKey() {
-  return !!localStorage.getItem('sv_omdb_api_key')
+  return !!localStorage.getItem('sv_tmdb_api_key')
 }
 
 const useAppStore = create((set, get) => ({
+  // ── TMDB API Key ────────────────────────────────────────────
+  tmdbApiKey: localStorage.getItem('sv_tmdb_api_key') || '',
+  setTmdbApiKey: (key) => {
+    localStorage.setItem('sv_tmdb_api_key', key)
+    set({ tmdbApiKey: key, isSetupComplete: hasValidKey() || !!key })
+  },
+
   // ── OMDB API Key ──────────────────────────────────────────
   omdbApiKey: localStorage.getItem('sv_omdb_api_key') || '',
   setOmdbApiKey: (key) => {
     localStorage.setItem('sv_omdb_api_key', key)
-    set({ omdbApiKey: key, isSetupComplete: hasValidKey() || !!key })
+    set({ omdbApiKey: key })
   },
 
   // ── Fanart.tv API Key ─────────────────────────────────────

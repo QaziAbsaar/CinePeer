@@ -1,7 +1,7 @@
 import { useState } from 'react'
 import { Settings, Key, Image, FolderOpen, Monitor, Globe, Activity, Check, AlertCircle, Gauge, Subtitles } from 'lucide-react'
 import useAppStore from '../store/useAppStore'
-import { validateOmdbKey, validateFanartKey, validateTraktKey } from '../services/metadata'
+import { validateApiKey, validateOmdbKey, validateFanartKey, validateTraktKey } from '../services/metadata'
 import { validateOsApiKey } from '../services/opensubtitles'
 import { QUALITY_OPTIONS } from '../utils/constants'
 import useToastStore from '../store/useToastStore'
@@ -17,6 +17,7 @@ const BANDWIDTH_OPTIONS = [
 
 export default function SettingsPage() {
   const {
+    tmdbApiKey, setTmdbApiKey,
     omdbApiKey, setOmdbApiKey,
     fanartApiKey, setFanartApiKey,
     traktClientId, setTraktClientId,
@@ -27,6 +28,10 @@ export default function SettingsPage() {
     opensubtitlesApiKey, setOpensubtitlesApiKey
   } = useAppStore()
   const addToast = useToastStore((s) => s.addToast)
+
+  const [tmdbKeyInput, setTmdbKeyInput] = useState(tmdbApiKey)
+  const [tmdbValidating, setTmdbValidating] = useState(false)
+  const [tmdbValidationResult, setTmdbValidationResult] = useState(null)
 
   const [omdbKeyInput, setOmdbKeyInput] = useState(omdbApiKey)
   const [omdbValidating, setOmdbValidating] = useState(false)
@@ -43,6 +48,21 @@ export default function SettingsPage() {
   const [subtitleKeyInput, setSubtitleKeyInput] = useState(opensubtitlesApiKey)
   const [subtitleValidating, setSubtitleValidating] = useState(false)
   const [subtitleValidationResult, setSubtitleValidationResult] = useState(null)
+
+  const handleTmdbValidate = async () => {
+    if (!tmdbKeyInput.trim()) return
+    setTmdbValidating(true)
+    setTmdbValidationResult(null)
+    const isValid = await validateApiKey(tmdbKeyInput.trim())
+    if (isValid) {
+      setTmdbApiKey(tmdbKeyInput.trim())
+      setTmdbValidationResult('success')
+      addToast('TMDB API key saved!', 'success')
+    } else {
+      setTmdbValidationResult('error')
+    }
+    setTmdbValidating(false)
+  }
 
   const handleOmdbValidate = async () => {
     if (!omdbKeyInput.trim()) return
@@ -96,13 +116,60 @@ export default function SettingsPage() {
           <Settings size={28} /> Settings
         </h1>
 
-        {/* OMDb API Key */}
+        {/* TMDB API Key (Primary) */}
         <section className="settings-section glass-card">
           <div className="settings-section-header">
             <Globe size={20} />
             <div>
-              <h2 className="settings-section-title">OMDb API Key</h2>
-              <p className="text-meta">Required. Provides movie/TV metadata: titles, plot, ratings, and poster images.</p>
+              <h2 className="settings-section-title">TMDB API Key</h2>
+              <p className="text-meta">Required (primary). Provides full metadata, HD images, and rich discovery.</p>
+            </div>
+          </div>
+          <div className="settings-field-row">
+            <input
+              type="text"
+              className="input-field"
+              placeholder="Enter your TMDB API key..."
+              value={tmdbKeyInput}
+              onChange={(e) => {
+                setTmdbKeyInput(e.target.value)
+                setTmdbValidationResult(null)
+              }}
+              id="tmdb-api-key-input"
+            />
+            <button
+              className="btn btn-primary"
+              onClick={handleTmdbValidate}
+              disabled={tmdbValidating || !tmdbKeyInput.trim()}
+            >
+              {tmdbValidating ? <div className="spinner" /> : 'Save & Validate'}
+            </button>
+          </div>
+          {tmdbValidationResult === 'success' && (
+            <div className="validation-msg success">
+              <Check size={16} /> API key is valid and saved!
+            </div>
+          )}
+          {tmdbValidationResult === 'error' && (
+            <div className="validation-msg error">
+              <AlertCircle size={16} /> Invalid API key. Please check and try again.
+            </div>
+          )}
+          <p className="settings-help text-small">
+            Get a free key at{' '}
+            <a href="https://www.themoviedb.org/settings/api" target="_blank" rel="noreferrer" className="settings-link">
+              themoviedb.org/settings/api
+            </a>
+          </p>
+        </section>
+
+        {/* OMDb API Key (Fallback) */}
+        <section className="settings-section glass-card">
+          <div className="settings-section-header">
+            <Globe size={20} />
+            <div>
+              <h2 className="settings-section-title">OMDb API Key (Fallback)</h2>
+              <p className="text-meta">Fallback when TMDB is unavailable. Provides basic metadata and poster images.</p>
             </div>
           </div>
           <div className="settings-field-row">
@@ -401,8 +468,8 @@ export default function SettingsPage() {
           <h2 className="settings-section-title gradient-text">CinePeer</h2>
           <p className="text-meta">Version 1.0.0</p>
           <p className="settings-source-status">
-            <span className="source-dot omdb" />
-            Metadata: <strong>OMDb + Fanart.tv</strong>
+            <span className="source-dot tmdb" />
+            Metadata: <strong>TMDB → OMDb</strong>
           </p>
           <p className="text-small" style={{ marginTop: 8 }}>
             A cinematic desktop streaming application. Built with Electron, React, and WebTorrent.

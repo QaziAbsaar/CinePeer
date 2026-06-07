@@ -172,7 +172,7 @@ async function enrichWithImages(item) {
  * Fetch a list from Trakt and enrich each item with images.
  * Returns array shaped like { results, total_results }.
  */
-async function fetchList(endpoint, page = 1, mediaType = 'movie', limit = 20) {
+export async function fetchList(endpoint, page = 1, mediaType = 'movie', limit = 20) {
   const clientId = getClientId()
   if (!clientId) throw new Error('Trakt client ID not configured')
 
