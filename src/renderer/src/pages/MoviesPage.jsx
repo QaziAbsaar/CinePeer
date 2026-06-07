@@ -10,63 +10,141 @@ import './MoviesPage.css'
 
 export default function MoviesPage() {
   const [movies, setMovies] = useState([])
-  const [page, setPage] = useState(1)
   const [loading, setLoading] = useState(true)
   const [hasMore, setHasMore] = useState(true)
   const [error, setError] = useState(false)
   const { filters } = useMediaStore()
   const sentinelRef = useRef(null)
   const fetchingRef = useRef(false)
+  const nextPageRef = useRef(1)
 
-  // Fetch movies based on filters
-  const fetchMovies = useCallback(async (pageNum, reset = false) => {
+  // Client-side sort helper (YTS mirror ignores sort_by param)
+  const sortMovies = useCallback((moviesList, sortField) => {
+    const sorted = [...moviesList]
+    sorted.sort((a, b) => {
+      let valA, valB
+      switch (sortField) {
+        case 'rating':
+          valA = a.vote_average || 0
+          valB = b.vote_average || 0
+          break
+        case 'year':
+          valA = Number(a.release_date) || 0
+          valB = Number(b.release_date) || 0
+          break
+        case 'title':
+          valA = (a.title || '').toLowerCase()
+          valB = (b.title || '').toLowerCase()
+          break
+        case 'seeds': {
+          valA = Math.max(0, ...(a.yts_data?.torrents || []).map(t => t.seeds || 0))
+          valB = Math.max(0, ...(b.yts_data?.torrents || []).map(t => t.seeds || 0))
+          break
+        }
+        case 'download_count': {
+          valA = Math.max(0, ...(a.yts_data?.torrents || []).map(t => t.download_count || 0))
+          valB = Math.max(0, ...(b.yts_data?.torrents || []).map(t => t.download_count || 0))
+          break
+        }
+        case 'like_count':
+          valA = a.yts_data?.like_count || 0
+          valB = b.yts_data?.like_count || 0
+          break
+        case 'date_added':
+        default:
+          // "Latest" = newest release year first (what users expect)
+          valA = Number(a.release_date) || 0
+          valB = Number(b.release_date) || 0
+          // Tiebreaker: higher YTS id = added more recently
+          if (valA === valB) {
+            valA = a.id
+            valB = b.id
+          }
+      }
+      // Descending order
+      if (valA < valB) return 1
+      if (valA > valB) return -1
+      return 0
+    })
+    return sorted
+  }, [])
+
+  // Fetch movies — batches multiple API pages when year filter active
+  const fetchMovies = useCallback(async (reset = false) => {
     if (fetchingRef.current) return
     fetchingRef.current = true
     if (reset) { setLoading(true); setError(false) }
 
     try {
-      const params = {
-        page: pageNum,
-        limit: 20,
-        sort_by: filters.sort_by,
-        order_by: 'desc'
-      }
-      if (filters.genre !== 'All') params.genre = filters.genre.toLowerCase()
-      if (filters.quality !== 'All') params.quality = filters.quality
-      if (filters.minimum_rating > 0) params.minimum_rating = filters.minimum_rating
-      // Year filter is done client-side (YTS API mirror ignores year param)
+      let accumulated = []
+      let currentPage = nextPageRef.current
+      let apiHasMore = true
+      let isFirstBatch = true
 
-      const result = await listMovies(params)
-      let newMovies = (result.movies || []).map(m => ({
-        id: m.id,
-        title: m.title,
-        name: m.title,
-        poster_path: null,
-        backdrop_path: m.large_cover_image || null, // YTS large_cover_image as backdrop
-        imdb_id: m.imdb_code ? `tt${m.imdb_code}` : null,
-        yts_poster: m.medium_cover_image,
-        vote_average: m.rating,
-        release_date: String(m.year),
-        overview: m.synopsis || m.summary,
-        genre_ids: [],
-        media_type: 'movie',
-        yts_data: m
-      }))
+      while (apiHasMore) {
+        const params = {
+          page: currentPage,
+          limit: 20,
+          sort_by: filters.sort_by,
+          order_by: 'desc'
+        }
+        if (filters.genre !== 'All') params.genre = filters.genre.toLowerCase()
+        if (filters.quality !== 'All') params.quality = filters.quality
+        if (filters.minimum_rating > 0) params.minimum_rating = filters.minimum_rating
 
-      // Client-side year filter (YTS API mirror ignores year param)
-      const unfilteredCount = newMovies.length
-      if (filters.year !== 'All') {
-        newMovies = newMovies.filter(m =>
-          m.release_date?.substring(0, 4) === String(filters.year)
-        )
+        const result = await listMovies(params)
+        let newMovies = (result.movies || []).map(m => ({
+          id: m.id,
+          title: m.title,
+          name: m.title,
+          poster_path: null,
+          backdrop_path: m.large_cover_image || null,
+          imdb_id: m.imdb_code ? `tt${m.imdb_code}` : null,
+          yts_poster: m.medium_cover_image,
+          vote_average: m.rating,
+          release_date: String(m.year),
+          overview: m.synopsis || m.summary,
+          genre_ids: [],
+          media_type: 'movie',
+          yts_data: m
+        }))
+
+        const unfilteredCount = newMovies.length
+
+        // Client-side year filter (YTS API mirror ignores year param)
+        if (filters.year !== 'All') {
+          newMovies = newMovies.filter(m =>
+            m.release_date?.substring(0, 4) === String(filters.year)
+          )
+        }
+
+        // reset only applies to first batch — subsequent pages always append
+        if (reset && isFirstBatch) {
+          accumulated = newMovies
+          isFirstBatch = false
+        } else {
+          accumulated = [...accumulated, ...newMovies]
+        }
+        apiHasMore = unfilteredCount >= 20
+
+        // If year filter active, batch-fetch multiple API pages until we have enough
+        // Otherwise stop after one page
+        if (filters.year === 'All' || accumulated.length >= 20 || !apiHasMore) {
+          nextPageRef.current = currentPage + 1
+          break
+        }
+        currentPage++
       }
+
+      // Client-side sort (YTS mirror ignores sort_by param)
+      accumulated = sortMovies(accumulated, filters.sort_by || 'date_added')
 
       if (reset) {
-        setMovies(newMovies)
+        setMovies(accumulated)
       } else {
-        setMovies(prev => [...prev, ...newMovies])
+        setMovies(prev => [...prev, ...accumulated])
       }
-      setHasMore(unfilteredCount >= 20)
+      setHasMore(apiHasMore)
     } catch (err) {
       console.error('Failed to fetch movies:', err)
       setHasMore(false)
@@ -75,12 +153,12 @@ export default function MoviesPage() {
       setLoading(false)
       fetchingRef.current = false
     }
-  }, [filters])
+  }, [filters, sortMovies])
 
   // Reset on filter change
   useEffect(() => {
-    setPage(1)
-    fetchMovies(1, true)
+    nextPageRef.current = 1
+    fetchMovies(true)
   }, [filters, fetchMovies])
 
   // Infinite scroll via IntersectionObserver
@@ -90,11 +168,7 @@ export default function MoviesPage() {
     const observer = new IntersectionObserver(
       ([entry]) => {
         if (entry.isIntersecting && !fetchingRef.current) {
-          setPage(prev => {
-            const nextPage = prev + 1
-            fetchMovies(nextPage)
-            return nextPage
-          })
+          fetchMovies()
         }
       },
       { rootMargin: '400px' }
@@ -119,7 +193,7 @@ export default function MoviesPage() {
         ) : error ? (
           <div className="error-state">
             <p>Failed to load movies. Check your connection.</p>
-            <button className="btn btn-primary" onClick={() => fetchMovies(1, true)}>
+            <button className="btn btn-primary" onClick={() => fetchMovies(true)}>
               <RefreshCw size={18} /> Retry
             </button>
           </div>
