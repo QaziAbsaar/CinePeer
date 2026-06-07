@@ -118,6 +118,21 @@ export function discoverByGenre(mediaType = 'movie', genreId, page = 1) {
   )
 }
 
+// ── Anime (Japanese TV) ───────────────────────────────────
+export function discoverAnime(sortBy = 'popularity.desc', page = 1) {
+  return cachedFetch(`discover_anime_${sortBy}_${page}`, () =>
+    tmdb.get('/discover/tv', {
+      params: {
+        with_origin_country: 'JP',
+        with_genres: 16,
+        sort_by: sortBy,
+        'vote_count.gte': 50,
+        page
+      }
+    })
+  )
+}
+
 // ── Search ────────────────────────────────────────────────
 export function searchMulti(query, page = 1) {
   return tmdb.get('/search/multi', { params: { query, page } })

@@ -303,6 +303,13 @@ export async function discoverByGenre(mediaType = 'movie', genreId, page = 1) {
 }
 
 // ── Search ────────────────────────────────────────────────
+export async function discoverAnime(sortBy = 'popularity.desc', page = 1) {
+  if (hasTmdbKey()) {
+    return tmdb.discoverAnime(sortBy, page).catch(() => ({ results: [] }))
+  }
+  return Promise.resolve({ results: [] })
+}
+
 export async function searchMulti(query, page = 1) {
   if (hasTmdbKey()) {
     try {

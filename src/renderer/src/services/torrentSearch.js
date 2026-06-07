@@ -2,6 +2,7 @@ import { searchByImdbId as ytsSearchByImdb } from './yts'
 import { getTorrents as eztvGetTorrents } from './eztv'
 import { searchByImdbId as tpbSearchByImdb } from './tpb'
 import { searchByImdbId as thirteenSearchByImdb } from './1337x'
+import { searchAnime as nyaaSearchAnime } from './nyaa'
 
 function dedupTorrents(list) {
   const seen = new Set()
@@ -61,4 +62,28 @@ export async function searchTvTorrents(imdbId) {
 
   const merged = dedupTorrents([...eztvTorrents, ...tpbTorrents, ...thirteenTorrents])
   return merged.sort((a, b) => (b.seeds || 0) - (a.seeds || 0))
+}
+
+/**
+ * Search anime torrents from Nyaa.si by title.
+ * Returns results shaped like EZTV (with season/episode/quality).
+ */
+export async function searchAnimeTorrents(title) {
+  if (!title) return []
+  const res = await nyaaSearchAnime(title, { category: 'english-translated', sort: 'seeders' })
+  if (!res.results?.length) return []
+
+  // Normalize to match EZTV detail-modal format
+  return res.results.map(t => ({
+    title: t.title,
+    hash: t.hash,
+    magnet_url: t.magnet_url,
+    seeds: t.seeders,
+    peers: t.leechers,
+    size_bytes: t.size_bytes,
+    quality: t.quality,
+    season: 1,  // Nyaa.si doesn't use season numbers; group as season 1
+    episode: t.episode,
+    source: 'nyaa'
+  })).sort((a, b) => (b.seeds || 0) - (a.seeds || 0))
 }

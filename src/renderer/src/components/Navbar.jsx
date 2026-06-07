@@ -9,6 +9,7 @@ const NAV_LINKS = [
   { to: '/', label: 'Home' },
   { to: '/movies', label: 'Movies' },
   { to: '/tv', label: 'TV Shows' },
+  { to: '/anime', label: 'Anime' },
   { to: '/watchlist', label: 'My List' }
 ]
 

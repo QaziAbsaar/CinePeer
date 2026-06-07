@@ -1,7 +1,7 @@
 import { useState, useEffect, useCallback } from 'react'
 import { X, Star, Clock, Calendar, Play, Plus, Check, ChevronDown, ChevronRight } from 'lucide-react'
 import { getDetails, getBackdropUrl, getProfileUrl, getPosterUrl, lookupByExternalId } from '../services/metadata'
-import { searchMovieTorrents, searchTvTorrents } from '../services/torrentSearch'
+import { searchMovieTorrents, searchTvTorrents, searchAnimeTorrents } from '../services/torrentSearch'
 import { GENRES, formatDuration, formatBytes } from '../utils/constants'
 import useMediaStore from '../store/useMediaStore'
 import useTorrentStore from '../store/useTorrentStore'
@@ -65,13 +65,21 @@ export default function DetailModal() {
           || videos.find(v => v.site === 'YouTube')
         setTrailerKey(trailer?.key || null)
 
-        // Fetch torrents from all sources (YTS/TPB for movies, EZTV/TPB for TV)
+        // Fetch torrents from all sources
         const imdbId = detailData?.external_ids?.imdb_id || detailData?.imdb_id || selectedMedia.imdb_id
-        if (imdbId) {
-          const results = selectedMediaType === 'movie'
-            ? await searchMovieTorrents(imdbId)
-            : await searchTvTorrents(imdbId)
+        if (selectedMediaType === 'movie') {
+          const results = await searchMovieTorrents(imdbId)
           setTorrents(results)
+        } else {
+          const title = detailData?.title || detailData?.name || selectedMedia.title || selectedMedia.name
+          const [eztvResults, nyaaResults] = await Promise.allSettled([
+            searchTvTorrents(imdbId),
+            searchAnimeTorrents(title)
+          ])
+          const tvTorrents = eztvResults.status === 'fulfilled' ? eztvResults.value : []
+          const animeTorrents = nyaaResults.status === 'fulfilled' ? nyaaResults.value : []
+          // Merge both, Nyaa.si results append at end
+          setTorrents([...tvTorrents, ...animeTorrents])
         }
       } catch (err) {
         console.error('Failed to fetch details:', err)
