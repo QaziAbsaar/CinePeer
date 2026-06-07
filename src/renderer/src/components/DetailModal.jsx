@@ -33,17 +33,26 @@ export default function DetailModal() {
       setLoading(true)
       setTorrentLoading(true)
       try {
-        // Fetch TMDB details — fall back to IMDB lookup if YTS id was used
         let detailData = null
-        try {
-          detailData = await getDetails(selectedMedia.id, selectedMediaType)
-        } catch {
-          // ID may be from YTS — try looking up by IMDB ID
-          if (selectedMedia.imdb_id) {
-            detailData = await lookupByExternalId(selectedMedia.imdb_id)
-            detailData = detailData
-              ? await getDetails(detailData.id, detailData.media_type || selectedMediaType)
-              : null
+
+        // If item came from YTS (MoviesPage), its ID is a YTS ID, not TMDB —
+        // use the IMDb ID to find the correct TMDB entry directly.
+        if (selectedMedia.yts_data && selectedMedia.imdb_id) {
+          const found = await lookupByExternalId(selectedMedia.imdb_id)
+          if (found) {
+            detailData = await getDetails(found.id, found.media_type || selectedMediaType)
+          }
+        } else {
+          try {
+            detailData = await getDetails(selectedMedia.id, selectedMediaType)
+          } catch {
+            // ID may be from YTS — try looking up by IMDB ID
+            if (selectedMedia.imdb_id) {
+              const found = await lookupByExternalId(selectedMedia.imdb_id)
+              if (found) {
+                detailData = await getDetails(found.id, found.media_type || selectedMediaType)
+              }
+            }
           }
         }
         setDetails(detailData)
