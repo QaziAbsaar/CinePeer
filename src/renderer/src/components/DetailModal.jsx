@@ -283,9 +283,28 @@ export default function DetailModal() {
 
           {/* Torrents */}
           <div className="detail-torrents-section">
-            <h3 className="detail-section-title">
-              {selectedMediaType === 'tv' ? 'Episodes' : 'Available Streams'}
-            </h3>
+            <div className="detail-section-header">
+              <h3 className="detail-section-title">
+                {selectedMediaType === 'tv' ? 'Episodes' : 'Available Streams'}
+              </h3>
+              {selectedMediaType === 'tv' && (
+                <button
+                  className="btn btn-sm btn-secondary"
+                  onClick={() => {
+                    clearSelectedMedia()
+                    navigate('/tv-episodes', {
+                      state: {
+                        tvId: details?.id || selectedMedia.id,
+                        media: selectedMedia,
+                        mediaType: 'tv'
+                      }
+                    })
+                  }}
+                >
+                  Browse All Episodes
+                </button>
+              )}
+            </div>
             {torrentLoading ? (
               <div className="torrent-loading">
                 <div className="spinner" />

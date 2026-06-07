@@ -1,5 +1,6 @@
 import { create } from 'zustand'
 import { electronInvoke, isRunningInElectron } from '../utils/electron'
+import useAppStore from './useAppStore'
 
 const HISTORY_KEY = 'sv_download_history'
 
@@ -41,7 +42,8 @@ const useTorrentStore = create((set, get) => ({
       }))
 
       // Call Electron IPC to start torrent (with browser fallback)
-      const result = await electronInvoke('torrent', 'add', [magnetUri], {
+      const maxDownloadSpeed = useAppStore.getState().maxDownloadSpeed || 0
+      const result = await electronInvoke('torrent', 'add', [magnetUri, maxDownloadSpeed], {
         streamUrl: 'about:blank',
         infoHash: 'dev-' + Date.now(),
         fileName: title || 'Unknown',

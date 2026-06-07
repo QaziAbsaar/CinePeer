@@ -10,6 +10,7 @@ import HomePage from './pages/HomePage'
 import MoviesPage from './pages/MoviesPage'
 import TVShowsPage from './pages/TVShowsPage'
 import AnimePage from './pages/AnimePage'
+import TVEpisodesPage from './pages/TVEpisodesPage'
 import PlayerPage from './pages/PlayerPage'
 import WatchlistPage from './pages/WatchlistPage'
 import SettingsPage from './pages/SettingsPage'
@@ -39,6 +40,7 @@ export default function App() {
             <Route path="/" element={<HomePage />} />
             <Route path="/movies" element={<MoviesPage />} />
             <Route path="/tv" element={<TVShowsPage />} />
+            <Route path="/tv-episodes" element={<TVEpisodesPage />} />
             <Route path="/anime" element={<AnimePage />} />
             <Route path="/player" element={<PlayerPage />} />
             <Route path="/watchlist" element={<WatchlistPage />} />

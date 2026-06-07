@@ -483,6 +483,9 @@ export function getProfileUrl(path, size = 'medium') {
   return `${TMDB_IMAGE_BASE}/${IMAGE_SIZES.profile[size]}${path}`
 }
 
+// ── TV Season Episodes (TMDB-only, no OMDb equivalent) ────
+export const getSeasonEpisodes = tmdb.getSeasonEpisodes
+
 // ── Key validators ────────────────────────────────────────
 export const validateApiKey     = tmdb.validateApiKey
 export const validateOmdbKey   = omdb.validateOmdbKey

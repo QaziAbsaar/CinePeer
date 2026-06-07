@@ -165,6 +165,13 @@ export function getSimilar(id, mediaType = 'movie') {
   )
 }
 
+// ── TV Season Episodes ──────────────────────────────────────
+export function getSeasonEpisodes(tvId, seasonNumber) {
+  return cachedFetch(`tv_${tvId}_season_${seasonNumber}`, () =>
+    tmdb.get(`/tv/${tvId}/season/${seasonNumber}`)
+  )
+}
+
 // ── Image URL Helpers ─────────────────────────────────────
 export function getPosterUrl(path, size = 'medium') {
   if (!path) return null

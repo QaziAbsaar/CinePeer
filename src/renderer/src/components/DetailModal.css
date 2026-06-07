@@ -99,10 +99,17 @@
   margin-bottom: 28px;
 }
 
+.detail-section-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-bottom: 14px;
+}
+
 .detail-section-title {
   font-size: 1.1rem;
   font-weight: 600;
-  margin-bottom: 14px;
+  margin-bottom: 0;
   color: var(--text-primary);
 }
 

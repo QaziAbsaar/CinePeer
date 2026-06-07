@@ -23,6 +23,9 @@ const SUBTITLE_LANGUAGES = [
   { code: 'hi', label: 'Hindi' }
 ]
 
+// Playback speed options
+const SPEED_OPTIONS = [0.25, 0.5, 0.75, 1, 1.25, 1.5, 2, 3]
+
 // Module-level track URL for cleanup
 let _trackUrl = null
 
@@ -50,6 +53,85 @@ export default function PlayerPage() {
   const [subtitleLoading, setSubtitleLoading] = useState(false)
   const [showCC, setShowCC] = useState(true)
   const [streamError, setStreamError] = useState(false)
+  const [playbackSpeed, setPlaybackSpeed] = useState(1)
+  const [showSpeedPicker, setShowSpeedPicker] = useState(false)
+  const [resumePosition, setResumePosition] = useState(null)
+
+  // ── Continue watching: save/restore position ────────────────
+  const RESUME_KEY = currentStream?.infoHash ? `sv_resume_${currentStream.infoHash}` : null
+
+  const savePosition = useCallback(() => {
+    if (!RESUME_KEY || !videoRef.current || !duration) return
+    const pos = videoRef.current.currentTime
+    if (pos < 5) return // Don't save near start
+    try {
+      localStorage.setItem(RESUME_KEY, JSON.stringify({
+        position: pos,
+        duration,
+        title: currentStream?.title || '',
+        updatedAt: Date.now()
+      }))
+    } catch {}
+  }, [RESUME_KEY, duration, currentStream])
+
+  // On mount, check for saved resume position
+  useEffect(() => {
+    if (!RESUME_KEY || !currentStream) return
+    try {
+      const saved = localStorage.getItem(RESUME_KEY)
+      if (saved) {
+        const data = JSON.parse(saved)
+        // Show resume prompt if position > 10s and not near end
+        if (data.position > 10 && data.position / data.duration < 0.95) {
+          setResumePosition(data.position)
+        }
+      }
+    } catch {}
+  }, [RESUME_KEY, currentStream])
+
+  // Save position periodically and on time update
+  const saveTimerRef = useRef(null)
+  useEffect(() => {
+    if (!isPlaying || !RESUME_KEY) return
+    saveTimerRef.current = setInterval(savePosition, 30000)
+    return () => clearInterval(saveTimerRef.current)
+  }, [isPlaying, RESUME_KEY, savePosition])
+
+  // Save position on pause
+  const handlePause = useCallback(() => {
+    setIsPlaying(false)
+    savePosition()
+  }, [savePosition])
+
+  // Save position on unmount
+  useEffect(() => {
+    return () => {
+      if (RESUME_KEY && videoRef.current?.currentTime > 5) {
+        try {
+          localStorage.setItem(RESUME_KEY, JSON.stringify({
+            position: videoRef.current.currentTime,
+            duration: videoRef.current.duration,
+            title: currentStream?.title || '',
+            updatedAt: Date.now()
+          }))
+        } catch {}
+      }
+    }
+  }, [RESUME_KEY, currentStream])
+
+  const handleResume = useCallback(() => {
+    if (videoRef.current && resumePosition) {
+      videoRef.current.currentTime = resumePosition
+    }
+    setResumePosition(null)
+  }, [resumePosition])
+
+  const handleStartOver = useCallback(() => {
+    setResumePosition(null)
+    if (RESUME_KEY) {
+      try { localStorage.removeItem(RESUME_KEY) } catch {}
+    }
+  }, [RESUME_KEY])
 
   // ── Cleanup on unmount ─────────────────────────────────────
   useEffect(() => {
@@ -113,9 +195,10 @@ export default function PlayerPage() {
       const imdbId = currentStream.imdb_id || currentStream.mediaInfo?.imdb_id
       if (!imdbId) return
 
+      const mediaType = currentStream?.mediaType
       setSubtitleLoading(true)
       try {
-        const result = await searchSubtitles({ imdbId, language: subtitleLanguage || 'en' })
+        const result = await searchSubtitles({ imdbId, language: subtitleLanguage || 'en', type: mediaType === 'tv' ? 'episode' : undefined })
         const subs = result?.data || []
         if (subs.length > 0) {
           const fileId = subs[0].attributes?.files?.[0]?.file_id
@@ -160,7 +243,8 @@ export default function PlayerPage() {
     setSubtitleLoading(true)
     try {
       const imdbId = currentStream.imdb_id || currentStream.mediaInfo?.imdb_id
-      const result = await searchSubtitles({ imdbId, language: langCode })
+      const mediaType = currentStream?.mediaType
+      const result = await searchSubtitles({ imdbId, language: langCode, type: mediaType === 'tv' ? 'episode' : undefined })
       const subs = result?.data || []
       if (subs.length > 0 && mountedRef.current) {
         const fileId = subs[0].attributes?.files?.[0]?.file_id
@@ -204,6 +288,13 @@ export default function PlayerPage() {
       }
     }
   }, [showCC])
+
+  // ── Change playback speed ───────────────────────────────────
+  const changeSpeed = useCallback((speed) => {
+    setPlaybackSpeed(speed)
+    setShowSpeedPicker(false)
+    if (videoRef.current) videoRef.current.playbackRate = speed
+  }, [])
 
   // ── Poll torrent progress ──────────────────────────────────
   useEffect(() => {
@@ -267,19 +358,35 @@ export default function PlayerPage() {
           setIsMuted(video.muted)
           break
         case 'Escape':
-          if (isFullscreen) {
+          if (resumePosition !== null) {
+            setResumePosition(null)
+          } else if (isFullscreen) {
             document.exitFullscreen()
           } else {
             navigate(-1)
           }
           break
+        case '[': {
+          e.preventDefault()
+          const slower = Math.max(0.25, (video.playbackRate || 1) - 0.25)
+          video.playbackRate = slower
+          setPlaybackSpeed(slower)
+          break
+        }
+        case ']': {
+          e.preventDefault()
+          const faster = Math.min(3, (video.playbackRate || 1) + 0.25)
+          video.playbackRate = faster
+          setPlaybackSpeed(faster)
+          break
+        }
       }
       resetHideTimer()
     }
 
     window.addEventListener('keydown', handleKey)
     return () => window.removeEventListener('keydown', handleKey)
-  }, [duration, isFullscreen, navigate, resetHideTimer, toggleCC])
+  }, [duration, isFullscreen, navigate, resetHideTimer, toggleCC, resumePosition])
 
   const toggleFullscreen = () => {
     const el = containerRef.current
@@ -366,12 +473,15 @@ export default function PlayerPage() {
         src={currentStream.streamUrl}
         autoPlay
         onPlay={() => setIsPlaying(true)}
-        onPause={() => setIsPlaying(false)}
+        onPause={handlePause}
         onTimeUpdate={() => setCurrentTime(videoRef.current?.currentTime || 0)}
         onLoadedMetadata={() => setDuration(videoRef.current?.duration || 0)}
         onWaiting={() => setBuffering(true)}
         onCanPlay={() => { setBuffering(false); setStreamError(false) }}
         onError={handleStreamError}
+        onEnded={() => {
+          if (RESUME_KEY) try { localStorage.removeItem(RESUME_KEY) } catch {}
+        }}
       />
 
       {/* Buffering indicator */}
@@ -379,6 +489,24 @@ export default function PlayerPage() {
         <div className="player-buffering">
           <div className="spinner" style={{ width: 40, height: 40, borderWidth: 3 }} />
           <span>Buffering...</span>
+        </div>
+      )}
+
+      {/* Resume prompt */}
+      {resumePosition !== null && (
+        <div className="resume-prompt">
+          <div className="resume-prompt-content">
+            <p className="resume-prompt-title">Continue watching?</p>
+            <p className="text-meta">{formatTime(resumePosition)} of {formatTime(duration)}</p>
+            <div className="resume-prompt-actions">
+              <button className="btn btn-primary btn-sm" onClick={handleResume}>
+                <Play size={14} fill="currentColor" /> Resume
+              </button>
+              <button className="btn btn-secondary btn-sm" onClick={handleStartOver}>
+                Start Over
+              </button>
+            </div>
+          </div>
         </div>
       )}
 
@@ -520,6 +648,38 @@ export default function PlayerPage() {
                   )}
                 </div>
               )}
+
+              {/* Speed button */}
+              <div className="speed-btn-wrapper">
+                <button
+                  className={`player-btn speed-btn ${playbackSpeed !== 1 ? 'player-btn-active' : ''}`}
+                  onClick={(e) => {
+                    e.stopPropagation()
+                    setShowSpeedPicker(!showSpeedPicker)
+                  }}
+                  title={`Speed: ${playbackSpeed}x`}
+                >
+                  <span className="speed-label">{playbackSpeed}x</span>
+                </button>
+                {showSpeedPicker && (
+                  <div className="speed-picker glass-card" onClick={(e) => e.stopPropagation()}>
+                    <div className="speed-picker-header">
+                      <span>Speed</span>
+                    </div>
+                    <div className="speed-option-list">
+                      {SPEED_OPTIONS.map((speed) => (
+                        <button
+                          key={speed}
+                          className={`speed-option ${playbackSpeed === speed ? 'active' : ''}`}
+                          onClick={() => changeSpeed(speed)}
+                        >
+                          {speed}x
+                        </button>
+                      ))}
+                    </div>
+                  </div>
+                )}
+              </div>
 
               <button className="player-btn" onClick={toggleFullscreen}>
                 {isFullscreen ? <Minimize size={20} /> : <Maximize size={20} />}

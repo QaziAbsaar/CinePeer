@@ -193,6 +193,107 @@
   font-weight: 500;
 }
 
+/* ── Speed Controls ────────────────────────────────────────── */
+.speed-btn-wrapper {
+  position: relative;
+}
+
+.speed-label {
+  font-size: 0.72rem;
+  font-weight: 700;
+  letter-spacing: 0.02em;
+}
+
+.speed-picker {
+  position: absolute;
+  bottom: 44px;
+  right: 0;
+  width: 100px;
+  max-height: 260px;
+  overflow-y: auto;
+  padding: 8px;
+  background: rgba(18, 18, 26, 0.96);
+  border: 1px solid var(--border-subtle);
+  border-radius: var(--radius-md);
+  box-shadow: var(--shadow-lg);
+  animation: fadeIn var(--duration-fast) var(--ease-out);
+}
+
+.speed-picker-header {
+  padding: 4px 8px 10px;
+  border-bottom: 1px solid var(--border-subtle);
+  margin-bottom: 6px;
+  font-size: 0.82rem;
+  font-weight: 600;
+  color: var(--text-primary);
+  text-align: center;
+}
+
+.speed-option-list {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+}
+
+.speed-option {
+  display: block;
+  width: 100%;
+  text-align: center;
+  padding: 7px 10px;
+  border-radius: var(--radius-sm);
+  font-size: 0.78rem;
+  font-weight: 600;
+  color: var(--text-secondary);
+  transition: all var(--duration-fast);
+}
+
+.speed-option:hover {
+  background: var(--bg-glass);
+  color: var(--text-primary);
+}
+
+.speed-option.active {
+  background: var(--accent-primary-dim);
+  color: var(--accent-primary);
+  font-weight: 700;
+}
+
+/* ── Resume Prompt ─────────────────────────────────────────── */
+.resume-prompt {
+  position: absolute;
+  top: 50%;
+  left: 50%;
+  transform: translate(-50%, -50%);
+  z-index: 10;
+  animation: fadeIn var(--duration-normal) var(--ease-out);
+}
+
+.resume-prompt-content {
+  background: rgba(18, 18, 26, 0.92);
+  backdrop-filter: blur(12px);
+  border: 1px solid var(--border-subtle);
+  border-radius: var(--radius-lg);
+  padding: 24px 32px;
+  text-align: center;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 8px;
+  box-shadow: var(--shadow-xl);
+}
+
+.resume-prompt-title {
+  font-size: 1rem;
+  font-weight: 600;
+  color: var(--text-primary);
+}
+
+.resume-prompt-actions {
+  display: flex;
+  gap: 10px;
+  margin-top: 4px;
+}
+
 /* ── Active button state ────────────────────────────────── */
 .player-btn-active {
   color: var(--accent-primary) !important;

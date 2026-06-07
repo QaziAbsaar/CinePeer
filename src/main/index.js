@@ -29,14 +29,17 @@ class TorrentManager {
     return this._initPromise
   }
 
-  async addTorrent(magnetUri) {
+  async addTorrent(magnetUri, downloadLimit = 0) {
     await this._ensureClient()
     return new Promise((resolve, reject) => {
       const timeout = setTimeout(() => {
         reject(new Error('Torrent connection timed out after 30 seconds'))
       }, 30000)
 
-      this.client.add(magnetUri, (torrent) => {
+      const opts = {}
+      if (downloadLimit > 0) opts.downloadLimit = downloadLimit
+
+      this.client.add(magnetUri, opts, (torrent) => {
         clearTimeout(timeout)
         const file = torrent.files.reduce((a, b) => a.length > b.length ? a : b)
         const server = http.createServer((req, res) => {
@@ -207,8 +210,8 @@ function setupCSP() {
 function registerIPC() {
   torrentManager = new TorrentManager()
 
-  ipcMain.handle('torrent:add', async (_, magnetUri) => {
-    return await torrentManager.addTorrent(magnetUri)
+  ipcMain.handle('torrent:add', async (_, { magnetUri, downloadLimit }) => {
+    return await torrentManager.addTorrent(magnetUri, downloadLimit)
   })
 
   ipcMain.handle('torrent:progress', async (_, infoHash) => {
