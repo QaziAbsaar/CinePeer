@@ -44,6 +44,8 @@ export default function MediaCard({ item, mediaType = 'movie', badge = null }) {
     setSelectedMedia(item, mediaType)
   }, [item, mediaType, setSelectedMedia])
 
+  const inList = isInWatchlist(item.id, mediaType)
+
   const handleWatchlist = useCallback((e) => {
     e.stopPropagation()
     if (inList) {
@@ -58,7 +60,6 @@ export default function MediaCard({ item, mediaType = 'movie', badge = null }) {
   const rating = item.vote_average ? item.vote_average.toFixed(1) : null
   const runtime = item.runtime
   const posterUrl = getPosterUrl(item.poster_path, 'medium')
-  const inList = isInWatchlist(item.id, mediaType)
   const genreNames = item.genre_names?.length > 0
     ? item.genre_names.slice(0, 3)
     : (item.genre_ids || []).slice(0, 3).map(id => GENRES[id]).filter(Boolean)

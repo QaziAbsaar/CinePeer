@@ -169,6 +169,8 @@ function YTSMovieCard({ movie }) {
 
   const handleClick = () => setSelectedMedia(movie, 'movie')
 
+  const inList = isInWatchlist(movie.id, 'movie')
+
   const handleWatchlist = (e) => {
     e.stopPropagation()
     if (inList) {
@@ -177,8 +179,6 @@ function YTSMovieCard({ movie }) {
       addToWatchlist({ ...movie, media_type: 'movie' })
     }
   }
-
-  const inList = isInWatchlist(movie.id, 'movie')
   const hasRating = movie.vote_average > 0
 
   return (
