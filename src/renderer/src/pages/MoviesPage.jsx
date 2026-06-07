@@ -33,7 +33,7 @@ export default function MoviesPage() {
       }
       if (filters.genre !== 'All') params.genre = filters.genre.toLowerCase()
       if (filters.quality !== 'All') params.quality = filters.quality
-      if (filters.year !== 'All') params.minimum_rating = 0 // Use year filtering at display level
+      if (filters.year !== 'All') params.year = filters.year
       if (filters.minimum_rating > 0) params.minimum_rating = filters.minimum_rating
 
       const result = await listMovies(params)
