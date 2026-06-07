@@ -55,18 +55,18 @@ osApi.interceptors.response.use(
  * @param {string} [params.language='en'] - Language code (ISO 639-1)
  * @param {number} [params.page=1] - Page number
  */
-export async function searchSubtitles({ imdbId, language = 'en', page = 1 }) {
+export async function searchSubtitles({ imdbId, language = 'en', page = 1, type }) {
   const cleanId = imdbId.replace(/^tt/, '')
-  const data = await osApi.get('/subtitles', {
-    params: {
-      imdb_id: parseInt(cleanId, 10),
-      languages: language,
-      page,
-      order_by: 'download_count',
-      order_direction: 'desc',
-      type: 'movie'
-    }
-  })
+  const params = {
+    imdb_id: parseInt(cleanId, 10),
+    languages: language,
+    page,
+    order_by: 'download_count',
+    order_direction: 'desc'
+  }
+  // Only set type when explicitly provided; OpenSubtitles auto-detects otherwise
+  if (type) params.type = type
+  const data = await osApi.get('/subtitles', { params })
   return data
 }
 
@@ -103,10 +103,13 @@ export async function downloadSubtitle(fileId) {
 function srtToWebVtt(srt) {
   if (!srt) return ''
 
-  // Replace comma decimal separator with period in timestamps
-  let vtt = srt
-    .replace(/\r\n/g, '\n')
-    .replace(/,/g, '.')
+  // Remove \r, ensure WEBVTT header
+  let vtt = srt.replace(/\r\n/g, '\n')
+
+  // Replace comma decimal separator with period ONLY in timestamps
+  // SRT: 00:00:01,000 --> 00:00:04,000
+  // WebVTT: 00:00:01.000 --> 00:00:04.000
+  vtt = vtt.replace(/(\d{1,2}:\d{2}:\d{2}),(\d{3})/g, '$1.$2')
 
   // Ensure WEBVTT header
   if (!vtt.startsWith('WEBVTT')) {
