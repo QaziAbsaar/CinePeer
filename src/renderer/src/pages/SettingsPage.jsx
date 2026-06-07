@@ -340,7 +340,7 @@ export default function SettingsPage() {
             className="input-field"
             value={ytsBaseUrl}
             onChange={(e) => setYtsBaseUrl(e.target.value)}
-            placeholder="https://yts.mx/api/v2"
+            placeholder="https://movies-api.accel.li/api/v2"
             id="yts-base-url-input"
           />
         </section>

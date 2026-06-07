@@ -49,7 +49,7 @@ const useAppStore = create((set, get) => ({
     set({ downloadPath: path })
   },
 
-  ytsBaseUrl: localStorage.getItem('sv_yts_base_url') || 'https://yts.mx/api/v2',
+  ytsBaseUrl: localStorage.getItem('sv_yts_base_url') || 'https://movies-api.accel.li/api/v2',
   setYtsBaseUrl: (url) => {
     localStorage.setItem('sv_yts_base_url', url)
     set({ ytsBaseUrl: url })
