@@ -71,15 +71,16 @@
       "category": "public.app-category.video"
     },
     "dmg": {
+      "background": "Backgroud.png",
       "title": "CinePeer Installer",
       "iconSize": 128,
       "contents": [
-        { "x": 140, "y": 220, "type": "file" },
-        { "x": 430, "y": 220, "type": "link", "path": "/Applications" }
+        { "x": 130, "y": 200, "type": "file" },
+        { "x": 470, "y": 200, "type": "link", "path": "/Applications" }
       ],
       "window": {
         "width": 600,
-        "height": 450
+        "height": 400
       }
     },
     "linux": {
