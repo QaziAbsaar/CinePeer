@@ -16,10 +16,13 @@ jobs:
         include:
           - os: windows-latest
             build-targets: --win
+            electron-cache-path: '~/.cache/electron'
           - os: ubuntu-latest
             build-targets: --linux
+            electron-cache-path: '~/.cache/electron'
           - os: macos-latest
             build-targets: --mac
+            electron-cache-path: '~/Library/Caches/electron'
 
     runs-on: ${{ matrix.os }}
 
@@ -33,8 +36,32 @@ jobs:
           node-version: 20
           cache: npm
 
-      - name: Install dependencies
+      - name: Cache Electron binary
+        id: cache-electron
+        uses: actions/cache@v4
+        with:
+          path: ${{ matrix.electron-cache-path }}
+          key: electron-31.7.7-${{ matrix.os }}
+
+      - name: Install dependencies (skip Electron binary download)
         run: npm ci
+        env:
+          ELECTRON_SKIP_BINARY_DOWNLOAD: 1
+
+      - name: Download Electron binary (if not cached)
+        if: steps.cache-electron.outputs.cache-hit != 'true'
+        run: |
+          retry=0
+          until [ $retry -ge 5 ]; do
+            npx electron --version && break
+            retry=$((retry+1))
+            echo "Electron download failed (attempt $retry), retrying in 15s..."
+            sleep 15
+          done
+          if [ $retry -ge 5 ]; then echo "Failed to download Electron after 5 retries"; exit 1; fi
+        env:
+          ELECTRON_MIRROR: https://npmmirror.com/mirrors/electron/
+          ELECTRON_CUSTOM_VERSION: 31.7.7
 
       - name: Build app
         run: npm run build
@@ -45,7 +72,7 @@ jobs:
           until [ $retry -ge 3 ]; do
             npx electron-builder ${{ matrix.build-targets }} --publish always && break
             retry=$((retry+1))
-            echo "Attempt $retry failed, retrying in 10s..."
+            echo "Build attempt $retry failed, retrying in 10s..."
             sleep 10
           done
           if [ $retry -ge 3 ]; then exit 1; fi
