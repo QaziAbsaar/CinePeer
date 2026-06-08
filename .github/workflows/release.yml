@@ -9,7 +9,8 @@ permissions:
   contents: write
 
 jobs:
-  release:
+  build:
+    name: Build (${{ matrix.os }})
     strategy:
       matrix:
         os: [windows-latest, ubuntu-latest, macos-latest]
@@ -57,7 +58,44 @@ jobs:
       - name: Build app
         run: npm run build
 
-      - name: Package and publish
-        run: npx electron-builder ${{ matrix.build-targets }} --publish always
+      - name: Package installers
+        run: npx electron-builder ${{ matrix.build-targets }} --publish never
+
+      - name: Upload artifacts
+        uses: actions/upload-artifact@v4
+        with:
+          name: installer-${{ matrix.os }}
+          path: release/*
+          if-no-files-found: error
+
+  release:
+    name: Create Release
+    needs: build
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Download all artifacts
+        uses: actions/download-artifact@v4
+        with:
+          path: dist-artifacts
+
+      - name: Flatten artifact directories
+        run: |
+          mkdir -p release
+          find dist-artifacts -type f -exec cp -v {} release/ \;
+
+      - name: Upload to GitHub Release
+        uses: softprops/action-gh-release@v2
+        with:
+          tag_name: ${{ github.ref_name }}
+          name: CinePeer ${{ github.ref_name }}
+          body: |
+            See [CHANGELOG](./CHANGELOG.md) for details.
+          files: release/*
+          draft: false
+          prerelease: false
         env:
-          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
