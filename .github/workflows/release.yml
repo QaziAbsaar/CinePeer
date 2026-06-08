@@ -16,13 +16,19 @@ jobs:
         include:
           - os: windows-latest
             build-targets: --win
-            electron-cache-path: '~/.cache/electron'
+            electron-cache-path: |
+              ~/.cache/electron
+              ~/.cache/electron-builder
           - os: ubuntu-latest
             build-targets: --linux
-            electron-cache-path: '~/.cache/electron'
+            electron-cache-path: |
+              ~/.cache/electron
+              ~/.cache/electron-builder
           - os: macos-latest
             build-targets: --mac
-            electron-cache-path: '~/Library/Caches/electron'
+            electron-cache-path: |
+              ~/Library/Caches/electron
+              ~/Library/Caches/electron-builder
 
     runs-on: ${{ matrix.os }}
 
@@ -36,45 +42,23 @@ jobs:
           node-version: 20
           cache: npm
 
-      - name: Cache Electron binary
-        id: cache-electron
+      - name: Cache Electron and electron-builder
         uses: actions/cache@v4
+        id: electron-cache
         with:
           path: ${{ matrix.electron-cache-path }}
-          key: electron-31.7.7-${{ matrix.os }}
+          key: ${{ runner.os }}-electron-31.7.7-${{ hashFiles('package-lock.json') }}
 
-      - name: Install dependencies (skip Electron binary download)
-        run: npm ci
+      - name: Install dependencies
+        run: npm ci --maxsockets 4 --fetch-retries 5 --fetch-retry-mintimeout 30000
         env:
-          ELECTRON_SKIP_BINARY_DOWNLOAD: 1
-
-      - name: Download Electron binary (if not cached)
-        if: steps.cache-electron.outputs.cache-hit != 'true'
-        run: |
-          retry=0
-          until [ $retry -ge 5 ]; do
-            npx electron --version && break
-            retry=$((retry+1))
-            echo "Electron download failed (attempt $retry), retrying in 15s..."
-            sleep 15
-          done
-          if [ $retry -ge 5 ]; then echo "Failed to download Electron after 5 retries"; exit 1; fi
-        env:
-          ELECTRON_MIRROR: https://npmmirror.com/mirrors/electron/
-          ELECTRON_CUSTOM_VERSION: 31.7.7
+          ELECTRON_MIRROR: https://github.com/electron/electron/releases/download/v
+          npm_config_timeout: 120000
 
       - name: Build app
         run: npm run build
 
       - name: Package and publish
-        run: |
-          retry=0
-          until [ $retry -ge 3 ]; do
-            npx electron-builder ${{ matrix.build-targets }} --publish always && break
-            retry=$((retry+1))
-            echo "Build attempt $retry failed, retrying in 10s..."
-            sleep 10
-          done
-          if [ $retry -ge 3 ]; then exit 1; fi
+        run: npx electron-builder ${{ matrix.build-targets }} --publish always
         env:
           GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
