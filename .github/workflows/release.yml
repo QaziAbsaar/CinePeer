@@ -42,17 +42,16 @@ jobs:
           node-version: 20
           cache: npm
 
-      - name: Cache Electron and electron-builder
+      - name: Cache Electron binaries
         uses: actions/cache@v4
         id: electron-cache
         with:
           path: ${{ matrix.electron-cache-path }}
-          key: ${{ runner.os }}-electron-31.7.7-${{ hashFiles('package-lock.json') }}
+          key: ${{ runner.os }}-electron-31.7.7
 
       - name: Install dependencies
-        run: npm ci --maxsockets 4 --fetch-retries 5 --fetch-retry-mintimeout 30000
+        run: npm ci --maxsockets 4 --fetch-retries 5
         env:
-          ELECTRON_MIRROR: https://github.com/electron/electron/releases/download/v
           npm_config_timeout: 120000
 
       - name: Build app
