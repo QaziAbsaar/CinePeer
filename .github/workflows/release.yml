@@ -40,6 +40,14 @@ jobs:
         run: npm run build
 
       - name: Package and publish
-        run: npx electron-builder ${{ matrix.build-targets }} --publish always
+        run: |
+          retry=0
+          until [ $retry -ge 3 ]; do
+            npx electron-builder ${{ matrix.build-targets }} --publish always && break
+            retry=$((retry+1))
+            echo "Attempt $retry failed, retrying in 10s..."
+            sleep 10
+          done
+          if [ $retry -ge 3 ]; then exit 1; fi
         env:
           GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
