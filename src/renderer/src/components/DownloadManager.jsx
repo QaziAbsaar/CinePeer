@@ -1,16 +1,19 @@
-import { useEffect } from 'react'
-import { X, Pause, Trash2, Download, FolderOpen, Clock, RotateCcw } from 'lucide-react'
+import { useEffect, useState } from 'react'
+import { X, Pause, Trash2, Download, FolderOpen, Clock, RotateCcw, Save } from 'lucide-react'
 import useAppStore from '../store/useAppStore'
 import useTorrentStore from '../store/useTorrentStore'
+import useToastStore from '../store/useToastStore'
 import { formatBytes, formatSpeed, formatTimeRemaining } from '../utils/constants'
 import './DownloadManager.css'
 
 export default function DownloadManager() {
   const { isDownloadManagerOpen, closeDownloadManager } = useAppStore()
+  const { addToast } = useToastStore()
   const {
     activeTorrents, removeTorrent, pollProgress,
     downloadHistory, removeFromHistory, clearHistory
   } = useTorrentStore()
+  const [savingHash, setSavingHash] = useState(null)
 
   const torrentList = Object.entries(activeTorrents).filter(([k]) => k !== '_pending')
   const showHistory = downloadHistory.length > 0
@@ -21,6 +24,24 @@ export default function DownloadManager() {
     const interval = setInterval(pollProgress, 2000)
     return () => clearInterval(interval)
   }, [isDownloadManagerOpen, torrentList.length, pollProgress])
+
+  const handleSaveToDisk = async (torrent) => {
+    const hash = torrent.infoHash || torrent._infoHash
+    if (!hash || savingHash === hash) return
+    setSavingHash(hash)
+    try {
+      const result = await window.electron.torrent.saveToDisk(hash)
+      if (result.success) {
+        addToast(`Saved to ${result.path}`, 'success')
+      } else {
+        addToast(`Save failed: ${result.error}`, 'error')
+      }
+    } catch (e) {
+      addToast(`Save failed: ${e.message}`, 'error')
+    } finally {
+      setSavingHash(null)
+    }
+  }
 
   const handleOpenInFolder = async (item) => {
     try {
@@ -104,6 +125,16 @@ export default function DownloadManager() {
 
                       {/* Actions */}
                       <div className="dm-item-actions">
+                        {torrent.status === 'completed' && (
+                          <button
+                            className="btn-icon dm-action-btn"
+                            onClick={() => handleSaveToDisk(torrent)}
+                            title="Save to disk"
+                            disabled={savingHash === hash}
+                          >
+                            <Save size={16} className={savingHash === hash ? 'spin' : ''} />
+                          </button>
+                        )}
                         {torrent.status === 'completed' && (
                           <button
                             className="btn-icon dm-action-btn"

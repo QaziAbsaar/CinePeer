@@ -230,6 +230,45 @@ function registerIPC() {
     return path.join(app.getPath('downloads'), 'CinePeer')
   })
 
+  ipcMain.handle('torrent:saveToDisk', async (_, infoHash) => {
+    const entry = torrentManager.streams.get(infoHash)
+    if (!entry) return { success: false, error: 'Torrent not found' }
+
+    const { torrent } = entry
+    const file = torrent.files.reduce((a, b) => a.length > b.length ? a : b)
+    const fileName = file.name
+
+    const downloadDir = path.join(app.getPath('downloads'), 'CinePeer')
+    if (!fs.existsSync(downloadDir)) fs.mkdirSync(downloadDir, { recursive: true })
+    const destPath = path.join(downloadDir, fileName)
+
+    // If file already exists, append number
+    let finalPath = destPath
+    let counter = 1
+    while (fs.existsSync(finalPath)) {
+      const ext = path.extname(fileName)
+      const base = path.basename(fileName, ext)
+      finalPath = path.join(downloadDir, `${base} (${counter})${ext}`)
+      counter++
+    }
+
+    return new Promise((resolve) => {
+      const writeStream = fs.createWriteStream(finalPath)
+      const readStream = file.createReadStream()
+
+      readStream.pipe(writeStream)
+      writeStream.on('finish', () => {
+        resolve({ success: true, path: finalPath })
+      })
+      writeStream.on('error', (err) => {
+        resolve({ success: false, error: err.message })
+      })
+      readStream.on('error', (err) => {
+        resolve({ success: false, error: err.message })
+      })
+    })
+  })
+
   ipcMain.handle('system:getUserDataPath', () => {
     return app.getPath('userData')
   })

@@ -1,5 +1,5 @@
 import { useState } from 'react'
-import { Settings, Key, Image, FolderOpen, Monitor, Globe, Activity, Check, AlertCircle, Gauge, Subtitles } from 'lucide-react'
+import { Settings, Key, Image, FolderOpen, Monitor, Globe, Activity, Check, AlertCircle, Gauge, Subtitles, Download } from 'lucide-react'
 import useAppStore from '../store/useAppStore'
 import { validateApiKey, validateOmdbKey, validateFanartKey, validateTraktKey } from '../services/metadata'
 import { validateOsApiKey } from '../services/opensubtitles'
@@ -25,7 +25,8 @@ export default function SettingsPage() {
     downloadPath, setDownloadPath,
     ytsBaseUrl, setYtsBaseUrl,
     maxDownloadSpeed, setMaxDownloadSpeed,
-    opensubtitlesApiKey, setOpensubtitlesApiKey
+    opensubtitlesApiKey, setOpensubtitlesApiKey,
+    autoSaveOnComplete, setAutoSaveOnComplete
   } = useAppStore()
   const addToast = useToastStore((s) => s.addToast)
 
@@ -380,6 +381,26 @@ export default function SettingsPage() {
               Browse
             </button>
           </div>
+        </section>
+
+        {/* Auto-save on complete */}
+        <section className="settings-section glass-card">
+          <div className="settings-section-header">
+            <Download size={20} />
+            <div>
+              <h2 className="settings-section-title">Auto-Save Downloads</h2>
+              <p className="text-meta">Automatically save completed downloads to your download folder.</p>
+            </div>
+          </div>
+          <label className="toggle-row">
+            <span>Save files to disk when download completes</span>
+            <div
+              className={`toggle-switch ${autoSaveOnComplete ? 'active' : ''}`}
+              onClick={() => setAutoSaveOnComplete(!autoSaveOnComplete)}
+            >
+              <div className="toggle-knob" />
+            </div>
+          </label>
         </section>
 
         {/* Bandwidth Limit */}

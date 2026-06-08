@@ -1,6 +1,7 @@
 import { create } from 'zustand'
 import { electronInvoke, isRunningInElectron } from '../utils/electron'
 import useAppStore from './useAppStore'
+import useToastStore from './useToastStore'
 
 const HISTORY_KEY = 'sv_download_history'
 
@@ -123,6 +124,15 @@ const useTorrentStore = create((set, get) => ({
         const history = [historyEntry, ...s.downloadHistory].slice(0, 200)
         saveHistory(history)
         updated.downloadHistory = history
+
+        // Auto-save to disk if enabled
+        if (useAppStore.getState().autoSaveOnComplete && window.electron?.torrent?.saveToDisk) {
+          window.electron.torrent.saveToDisk(infoHash).then(res => {
+            if (res.success) {
+              useToastStore.getState().addToast(`Saved: ${res.path}`, 'success')
+            }
+          }).catch(() => {})
+        }
       }
 
       return updated

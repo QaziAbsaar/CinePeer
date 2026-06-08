@@ -5,7 +5,8 @@ contextBridge.exposeInMainWorld('electron', {
     add: (magnetUri, downloadLimit = 0) => ipcRenderer.invoke('torrent:add', { magnetUri, downloadLimit }),
     getProgress: (infoHash) => ipcRenderer.invoke('torrent:progress', infoHash),
     destroy: (infoHash) => ipcRenderer.invoke('torrent:destroy', infoHash),
-    listActive: () => ipcRenderer.invoke('torrent:list')
+    listActive: () => ipcRenderer.invoke('torrent:list'),
+    saveToDisk: (infoHash) => ipcRenderer.invoke('torrent:saveToDisk', infoHash)
   },
   fetch: {
     html: (url) => ipcRenderer.invoke('fetch:html', url)

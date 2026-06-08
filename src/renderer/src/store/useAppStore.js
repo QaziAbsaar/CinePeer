@@ -80,6 +80,13 @@ const useAppStore = create((set, get) => ({
     set({ subtitleEnabled: enabled })
   },
 
+  // ── Auto-save on complete ──────────────────────────────────
+  autoSaveOnComplete: localStorage.getItem('sv_auto_save') === 'true',
+  setAutoSaveOnComplete: (enabled) => {
+    localStorage.setItem('sv_auto_save', String(enabled))
+    set({ autoSaveOnComplete: enabled })
+  },
+
   // ── UI State ──────────────────────────────────────────────
   isDownloadManagerOpen: false,
   toggleDownloadManager: () => set((s) => ({ isDownloadManagerOpen: !s.isDownloadManagerOpen })),
