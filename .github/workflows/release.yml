@@ -86,11 +86,18 @@ jobs:
         with:
           path: dist-artifacts
 
+      - name: Collect installer files
+        run: |
+          mkdir -p release
+          find dist-artifacts -type f \( -name '*.dmg' -o -name '*.zip' -o -name '*.exe' -o -name '*.AppImage' -o -name '*.deb' \) -exec cp -v {} release/ \;
+          echo "--- Collected files ---"
+          ls -lh release/
+
       - name: Create Release and Upload Assets
         run: |
           gh release create "${{ github.ref_name }}" \
             --title "CinePeer ${{ github.ref_name }}" \
             --notes "Automated release from tag ${{ github.ref_name }}." \
-            dist-artifacts/installer-*/*
+            release/*
         env:
           GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
