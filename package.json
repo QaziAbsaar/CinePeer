@@ -76,7 +76,8 @@
     },
     "linux": {
       "target": ["AppImage", "deb"],
-      "category": "Video"
+      "category": "Video",
+      "maintainer": "CinePeer <cinepeer@example.com>"
     }
   },
   "dependencies": {
