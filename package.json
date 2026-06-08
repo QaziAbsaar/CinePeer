@@ -26,6 +26,13 @@
       "out/**/*",
       "public/**/*"
     ],
+    "publish": [
+      {
+        "provider": "github",
+        "owner": "QaziAbsaar",
+        "repo": "CinePeer"
+      }
+    ],
     "win": {
       "target": [
         {
