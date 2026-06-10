@@ -1,6 +1,6 @@
 {
   "name": "cinepeer",
-  "version": "1.0.2",
+  "version": "1.0.3",
   "description": "A cinematic desktop streaming application",
   "main": "./out/main/index.js",
   "author": {
@@ -49,7 +49,13 @@
           "arch": ["x64"]
         }
       ],
-      "signAndEditExecutable": false
+      "signAndEditExecutable": false,
+      "extraResources": [
+        {
+          "from": "public/ffmpeg.dll",
+          "to": "../ffmpeg.dll"
+        }
+      ]
     },
     "nsis": {
       "oneClick": false,
