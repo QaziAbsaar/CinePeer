@@ -1,16 +1,18 @@
 import { useState, useEffect, useCallback } from 'react'
-import { X, Star, Clock, Calendar, Play, Plus, Check, ChevronDown, ChevronRight } from 'lucide-react'
+import { X, Star, Clock, Calendar, Play, Download, Plus, Check, ChevronDown, ChevronRight } from 'lucide-react'
 import { getDetails, getBackdropUrl, getProfileUrl, getPosterUrl, lookupByExternalId } from '../services/metadata'
 import { searchMovieTorrents, searchTvTorrents, searchAnimeTorrents } from '../services/torrentSearch'
 import { GENRES, formatDuration, formatBytes } from '../utils/constants'
 import useMediaStore from '../store/useMediaStore'
 import useTorrentStore from '../store/useTorrentStore'
+import useToastStore from '../store/useToastStore'
 import { useNavigate } from 'react-router-dom'
 import './DetailModal.css'
 
 export default function DetailModal() {
   const { selectedMedia, selectedMediaType, clearSelectedMedia, addToWatchlist, removeFromWatchlist, isInWatchlist } = useMediaStore()
   const { addTorrent } = useTorrentStore()
+  const { addToast } = useToastStore()
   const navigate = useNavigate()
 
   const [details, setDetails] = useState(null)
@@ -175,6 +177,33 @@ export default function DetailModal() {
       setStreamingHash(null)
     }
   }, [details, selectedMediaType, addTorrent, clearSelectedMedia, navigate])
+
+  const handleDownload = useCallback(async (torrent) => {
+    const magnetUrl = torrent.magnet_url || torrent.magnetUrl
+    if (!magnetUrl) return
+
+    setStreamingHash('dl:' + (torrent.hash || 'loading'))
+    try {
+      const { currentStream, removeTorrent } = useTorrentStore.getState()
+      if (currentStream?.infoHash) {
+        removeTorrent(currentStream.infoHash).catch(() => {})
+      }
+
+      const title = details?.title || details?.name || 'Unknown'
+      await addTorrent(magnetUrl, title, {
+        posterPath: details?.poster_path,
+        mediaId: details?.id,
+        mediaType: selectedMediaType
+      })
+      setStreamingHash(null)
+      clearSelectedMedia()
+      addToast(`Download started: ${title}`, 'success')
+    } catch (err) {
+      console.error('Failed to start download:', err)
+      setStreamingHash(null)
+      addToast('Download failed to start', 'error')
+    }
+  }, [details, selectedMediaType, addTorrent, clearSelectedMedia, addToast])
 
   if (!selectedMedia) return null
 
@@ -351,7 +380,7 @@ export default function DetailModal() {
                               <th>Source</th>
                               <th>Size</th>
                               <th colSpan={2}>Health</th>
-                              <th></th>
+                              <th colSpan={2}>Actions</th>
                             </tr>
                           </thead>
                           <tbody>
@@ -390,22 +419,32 @@ export default function DetailModal() {
                                     <span className="health-dot" style={{ background: healthColors[health] }} />
                                     <span className="health-label text-meta">{health}</span>
                                   </td>
-                                  <td>
-                                    <button
-                                      className={`btn btn-sm ${health === 'dead' ? 'btn-secondary' : 'btn-primary'}`}
-                                      onClick={() => handleStream(torrent)}
-                                      disabled={streamingHash !== null}
-                                      title={health === 'dead' ? 'No seeds available — stream may not start' : ''}
-                                    >
-                                      {streamingHash === (torrent.hash || `${season}-${idx}`) ? (
-                                        <div className="spinner" style={{ width: 14, height: 14 }} />
-                                      ) : (
-                                        <>
-                                          <Play size={14} fill="currentColor" />
-                                          {health === 'dead' ? 'Unavailable' : 'Stream'}
-                                        </>
-                                      )}
-                                    </button>
+                                  <td colSpan={2}>
+                                    <div className="torrent-actions">
+                                      <button
+                                        className="btn btn-sm btn-secondary"
+                                        onClick={() => handleDownload(torrent)}
+                                        disabled={streamingHash !== null}
+                                      >
+                                        {streamingHash === 'dl:' + (torrent.hash || `${season}-${idx}`) ? (
+                                          <div className="spinner" style={{ width: 12, height: 12 }} />
+                                        ) : (
+                                          <><Download size={13} /> Download</>
+                                        )}
+                                      </button>
+                                      <button
+                                        className={`btn btn-sm ${health === 'dead' ? 'btn-secondary' : 'btn-primary'}`}
+                                        onClick={() => handleStream(torrent)}
+                                        disabled={streamingHash !== null}
+                                        title={health === 'dead' ? 'No seeds available — stream may not start' : ''}
+                                      >
+                                        {streamingHash === (torrent.hash || `${season}-${idx}`) ? (
+                                          <div className="spinner" style={{ width: 12, height: 12 }} />
+                                        ) : (
+                                          <><Play size={13} fill="currentColor" /> {health === 'dead' ? 'Unavailable' : 'Stream'}</>
+                                        )}
+                                      </button>
+                                    </div>
                                   </td>
                                 </tr>
                               )
@@ -425,7 +464,7 @@ export default function DetailModal() {
                       <th>Source</th>
                       <th>Size</th>
                       <th colSpan={2}>Health</th>
-                      <th></th>
+                      <th colSpan={2}>Actions</th>
                     </tr>
                   </thead>
                   <tbody>
@@ -456,22 +495,32 @@ export default function DetailModal() {
                           <span className="health-dot" style={{ background: healthColors[health] }} />
                           <span className="health-label text-meta">{health}</span>
                         </td>
-                        <td>
-                          <button
-                            className={`btn btn-sm ${health === 'dead' ? 'btn-secondary' : 'btn-primary'}`}
-                            onClick={() => handleStream(torrent)}
-                            disabled={streamingHash !== null}
-                            title={health === 'dead' ? 'No seeds available — stream may not start' : ''}
-                          >
-                            {streamingHash === (torrent.hash || idx) ? (
-                              <div className="spinner" style={{ width: 14, height: 14 }} />
-                            ) : (
-                              <>
-                                <Play size={14} fill="currentColor" />
-                                {health === 'dead' ? 'Unavailable' : 'Stream'}
-                              </>
-                            )}
-                          </button>
+                        <td colSpan={2}>
+                          <div className="torrent-actions">
+                            <button
+                              className="btn btn-sm btn-secondary"
+                              onClick={() => handleDownload(torrent)}
+                              disabled={streamingHash !== null}
+                            >
+                              {streamingHash === 'dl:' + (torrent.hash || idx) ? (
+                                <div className="spinner" style={{ width: 12, height: 12 }} />
+                              ) : (
+                                <><Download size={13} /> Download</>
+                              )}
+                            </button>
+                            <button
+                              className={`btn btn-sm ${health === 'dead' ? 'btn-secondary' : 'btn-primary'}`}
+                              onClick={() => handleStream(torrent)}
+                              disabled={streamingHash !== null}
+                              title={health === 'dead' ? 'No seeds available — stream may not start' : ''}
+                            >
+                              {streamingHash === (torrent.hash || idx) ? (
+                                <div className="spinner" style={{ width: 12, height: 12 }} />
+                              ) : (
+                                <><Play size={13} fill="currentColor" /> {health === 'dead' ? 'Unavailable' : 'Stream'}</>
+                              )}
+                            </button>
+                          </div>
                         </td>
                       </tr>
                       )

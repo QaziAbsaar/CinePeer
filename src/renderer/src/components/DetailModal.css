@@ -290,3 +290,14 @@
 .detail-trailer-btn {
   margin-top: 8px;
 }
+
+/* ── Torrent Action Buttons ────────────────────────────── */
+.torrent-actions {
+  display: flex;
+  gap: 6px;
+  align-items: center;
+}
+
+.torrent-actions .btn {
+  white-space: nowrap;
+}
