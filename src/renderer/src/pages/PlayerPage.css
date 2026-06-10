@@ -1,9 +1,15 @@
+/* ═══════════════════════════════════════════════
+   CinePeer Player — Prime Video-Inspired Design
+   ═══════════════════════════════════════════════ */
+
+/* ── Container ──────────────────────────────── */
 .player-container {
   position: fixed;
   inset: 0;
   background: #000;
-  z-index: var(--z-overlay);
+  z-index: var(--z-overlay, 100);
   cursor: default;
+  user-select: none;
 }
 
 .player-container.controls-hidden {
@@ -16,7 +22,7 @@
   object-fit: contain;
 }
 
-/* ── Buffering ──────────────────────────────────────────── */
+/* ── Buffering ──────────────────────────────── */
 .player-buffering {
   position: absolute;
   top: 50%;
@@ -25,12 +31,33 @@
   display: flex;
   flex-direction: column;
   align-items: center;
-  gap: 12px;
-  color: var(--text-secondary);
+  gap: 16px;
+  color: var(--text-secondary, #aaa);
   z-index: 5;
+  pointer-events: none;
 }
 
-/* ── Controls ───────────────────────────────────────────── */
+.player-buffering .spinner {
+  width: 48px;
+  height: 48px;
+  border: 3px solid rgba(255, 255, 255, 0.1);
+  border-top-color: var(--accent-primary, #00D4FF);
+  border-radius: 50%;
+  animation: spin 1s linear infinite;
+}
+
+@keyframes spin {
+  to { transform: rotate(360deg); }
+}
+
+.player-buffering span {
+  font-size: 0.85rem;
+  font-weight: 500;
+  letter-spacing: 0.3px;
+  opacity: 0.7;
+}
+
+/* ── Controls Overlay ───────────────────────── */
 .player-controls {
   position: absolute;
   inset: 0;
@@ -38,7 +65,7 @@
   flex-direction: column;
   justify-content: space-between;
   opacity: 0;
-  transition: opacity var(--duration-normal) var(--ease-out);
+  transition: opacity 0.3s ease;
   pointer-events: none;
 }
 
@@ -47,64 +74,133 @@
   pointer-events: all;
 }
 
-/* ── Top Bar ────────────────────────────────────────────── */
+/* ── Gradient layers (top & bottom) ─────────── */
+.player-controls::before {
+  content: '';
+  position: absolute;
+  top: 0;
+  left: 0;
+  right: 0;
+  height: 120px;
+  background: linear-gradient(180deg, rgba(0,0,0,0.6) 0%, transparent 100%);
+  pointer-events: none;
+  z-index: 0;
+}
+
+.player-controls::after {
+  content: '';
+  position: absolute;
+  bottom: 0;
+  left: 0;
+  right: 0;
+  height: 200px;
+  background: linear-gradient(0deg, rgba(0,0,0,0.7) 0%, transparent 100%);
+  pointer-events: none;
+  z-index: 0;
+}
+
+/* ── Top Bar ────────────────────────────────── */
 .player-top-bar {
+  position: relative;
+  z-index: 1;
   display: flex;
   align-items: center;
-  gap: 12px;
-  padding: 16px 24px;
-  background: linear-gradient(180deg, rgba(0, 0, 0, 0.7) 0%, transparent 100%);
+  gap: 16px;
+  padding: 20px 28px;
+}
+
+.player-back-btn {
+  width: 40px;
+  height: 40px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  color: #fff;
+  border-radius: 50%;
+  transition: all 0.2s ease;
+  opacity: 0.9;
+}
+
+.player-back-btn:hover {
+  background: rgba(255, 255, 255, 0.1);
+  opacity: 1;
 }
 
 .player-title {
   font-size: 1rem;
   font-weight: 500;
+  color: #fff;
+  text-shadow: 0 2px 8px rgba(0,0,0,0.5);
+  max-width: 50vw;
 }
 
-/* ── Center ─────────────────────────────────────────────── */
+/* ── Center Play/Pause ──────────────────────── */
 .player-center {
-  display: flex;
-  align-items: center;
-  justify-content: center;
+  position: absolute;
+  top: 50%;
+  left: 50%;
+  transform: translate(-50%, -50%);
+  z-index: 1;
+  pointer-events: none;
 }
 
 .player-center-btn {
-  width: 80px;
-  height: 80px;
+  width: 72px;
+  height: 72px;
   border-radius: 50%;
-  background: rgba(0, 0, 0, 0.4);
+  background: rgba(255, 255, 255, 0.08);
   backdrop-filter: blur(8px);
+  border: 2px solid rgba(255, 255, 255, 0.3);
   display: flex;
   align-items: center;
   justify-content: center;
   color: #fff;
-  transition: all var(--duration-normal) var(--ease-out);
+  cursor: pointer;
+  pointer-events: all;
+  transition: all 0.2s ease;
+  opacity: 0.85;
 }
 
 .player-center-btn:hover {
-  background: rgba(0, 0, 0, 0.6);
-  transform: scale(1.1);
+  background: rgba(255, 255, 255, 0.15);
+  border-color: rgba(255, 255, 255, 0.5);
+  transform: scale(1.06);
+  opacity: 1;
 }
 
-/* ── Bottom Bar ─────────────────────────────────────────── */
+.player-center-btn:active {
+  transform: scale(0.96);
+}
+
+/* ── Bottom Bar ─────────────────────────────── */
 .player-bottom-bar {
-  padding: 0 24px 16px;
-  background: linear-gradient(0deg, rgba(0, 0, 0, 0.8) 0%, transparent 100%);
+  position: relative;
+  z-index: 1;
+  padding: 0 28px 14px;
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
 }
 
-/* ── Progress Bar ───────────────────────────────────────── */
+/* ── Progress Bar ───────────────────────────── */
+.player-progress-wrap {
+  position: relative;
+  width: 100%;
+  padding: 8px 0;
+  cursor: pointer;
+  group: true;
+}
+
 .player-progress {
   position: relative;
-  height: 5px;
-  background: rgba(255, 255, 255, 0.2);
-  border-radius: 3px;
-  cursor: pointer;
-  margin-bottom: 12px;
-  transition: height var(--duration-fast);
+  height: 3px;
+  background: rgba(255, 255, 255, 0.18);
+  border-radius: 2px;
+  transition: height 0.15s ease;
 }
 
-.player-progress:hover {
-  height: 7px;
+.player-progress-wrap:hover .player-progress {
+  height: 5px;
 }
 
 .player-progress-buffered {
@@ -112,8 +208,8 @@
   top: 0;
   left: 0;
   height: 100%;
-  background: rgba(255, 255, 255, 0.15);
-  border-radius: 3px;
+  background: rgba(255, 255, 255, 0.12);
+  border-radius: 2px;
   z-index: 1;
 }
 
@@ -122,13 +218,53 @@
   top: 0;
   left: 0;
   height: 100%;
-  background: var(--accent-primary);
-  border-radius: 3px;
+  background: var(--accent-primary, #00D4FF);
+  border-radius: 2px;
   z-index: 2;
   transition: width 0.1s linear;
 }
 
-/* ── Actions Row ────────────────────────────────────────── */
+.player-progress-thumb {
+  position: absolute;
+  top: 50%;
+  width: 14px;
+  height: 14px;
+  background: #fff;
+  border-radius: 50%;
+  transform: translate(-50%, -50%);
+  z-index: 3;
+  opacity: 0;
+  transition: opacity 0.15s ease;
+  box-shadow: 0 0 6px rgba(0,0,0,0.5);
+}
+
+.player-progress-wrap:hover .player-progress-thumb {
+  opacity: 1;
+}
+
+/* ── Progress hover time tooltip ────────────── */
+.player-progress-tooltip {
+  position: absolute;
+  bottom: calc(100% + 8px);
+  transform: translateX(-50%);
+  background: rgba(0, 0, 0, 0.8);
+  color: #fff;
+  font-size: 0.75rem;
+  font-weight: 600;
+  padding: 4px 8px;
+  border-radius: 4px;
+  white-space: nowrap;
+  pointer-events: none;
+  opacity: 0;
+  transition: opacity 0.1s ease;
+  font-variant-numeric: tabular-nums;
+}
+
+.player-progress-wrap:hover .player-progress-tooltip {
+  opacity: 1;
+}
+
+/* ── Actions Row ────────────────────────────── */
 .player-bottom-actions {
   display: flex;
   align-items: center;
@@ -139,7 +275,7 @@
 .player-right-actions {
   display: flex;
   align-items: center;
-  gap: 8px;
+  gap: 6px;
 }
 
 .player-btn {
@@ -149,20 +285,67 @@
   align-items: center;
   justify-content: center;
   color: #fff;
-  border-radius: 50%;
-  transition: all var(--duration-fast);
+  border-radius: 4px;
+  transition: all 0.15s ease;
+  opacity: 0.85;
 }
 
 .player-btn:hover {
   background: rgba(255, 255, 255, 0.1);
+  opacity: 1;
+}
+
+.player-btn:active {
+  transform: scale(0.92);
+}
+
+.player-btn-active {
+  color: var(--accent-primary, #00D4FF) !important;
+  opacity: 1 !important;
+}
+
+/* ── Play button ────────────────────────────── */
+.player-play-btn {
+  width: 40px;
+  height: 40px;
+}
+
+/* ── Time display ───────────────────────────── */
+.player-time {
+  font-size: 0.82rem;
+  color: rgba(255, 255, 255, 0.7);
+  margin-left: 8px;
+  font-variant-numeric: tabular-nums;
+  letter-spacing: 0.2px;
+  font-weight: 400;
+}
+
+/* ── Volume ─────────────────────────────────── */
+.player-volume-wrap {
+  display: flex;
+  align-items: center;
+  gap: 4px;
 }
 
 .volume-slider {
-  width: 80px;
-  height: 4px;
+  width: 0;
+  opacity: 0;
+  transition: all 0.2s ease;
+  transform-origin: left;
+}
+
+.player-volume-wrap:hover .volume-slider,
+.volume-slider:focus-within {
+  width: 72px;
+  opacity: 1;
+  margin-left: 4px;
+}
+
+.volume-slider {
+  height: 3px;
   -webkit-appearance: none;
   appearance: none;
-  background: rgba(255, 255, 255, 0.3);
+  background: rgba(255, 255, 255, 0.25);
   border-radius: 2px;
   outline: none;
   cursor: pointer;
@@ -175,31 +358,42 @@
   background: #fff;
   border-radius: 50%;
   cursor: pointer;
+  border: none;
+  transition: transform 0.1s ease;
 }
 
-.player-time {
-  font-size: 0.8rem;
-  color: rgba(255, 255, 255, 0.7);
-  margin-left: 8px;
-  font-variant-numeric: tabular-nums;
+.volume-slider::-webkit-slider-thumb:hover {
+  transform: scale(1.2);
 }
 
+.volume-slider::-moz-range-thumb {
+  width: 12px;
+  height: 12px;
+  background: #fff;
+  border-radius: 50%;
+  border: none;
+  cursor: pointer;
+}
+
+/* ── Download / Torrent Info ────────────────── */
 .player-download-info {
-  font-size: 0.72rem;
-  color: var(--accent-primary);
-  background: rgba(0, 212, 255, 0.1);
+  font-size: 0.7rem;
+  color: var(--accent-primary, #00D4FF);
+  background: rgba(0, 212, 255, 0.08);
   padding: 4px 10px;
   border-radius: 100px;
-  font-weight: 500;
+  font-weight: 600;
+  letter-spacing: 0.2px;
+  white-space: nowrap;
 }
 
-/* ── Speed Controls ────────────────────────────────────────── */
+/* ── Speed ──────────────────────────────────── */
 .speed-btn-wrapper {
   position: relative;
 }
 
 .speed-label {
-  font-size: 0.72rem;
+  font-size: 0.75rem;
   font-weight: 700;
   letter-spacing: 0.02em;
 }
@@ -208,24 +402,25 @@
   position: absolute;
   bottom: 44px;
   right: 0;
-  width: 100px;
-  max-height: 260px;
+  min-width: 100px;
+  max-height: 280px;
   overflow-y: auto;
   padding: 8px;
-  background: rgba(18, 18, 26, 0.96);
-  border: 1px solid var(--border-subtle);
-  border-radius: var(--radius-md);
-  box-shadow: var(--shadow-lg);
-  animation: fadeIn var(--duration-fast) var(--ease-out);
+  background: rgba(10, 10, 15, 0.95);
+  backdrop-filter: blur(16px);
+  border: 1px solid rgba(255, 255, 255, 0.08);
+  border-radius: 8px;
+  box-shadow: 0 16px 48px rgba(0, 0, 0, 0.6);
+  animation: fadeIn 0.15s ease;
 }
 
 .speed-picker-header {
   padding: 4px 8px 10px;
-  border-bottom: 1px solid var(--border-subtle);
+  border-bottom: 1px solid rgba(255, 255, 255, 0.06);
   margin-bottom: 6px;
-  font-size: 0.82rem;
+  font-size: 0.8rem;
   font-weight: 600;
-  color: var(--text-primary);
+  color: var(--text-primary, #fff);
   text-align: center;
 }
 
@@ -240,67 +435,25 @@
   width: 100%;
   text-align: center;
   padding: 7px 10px;
-  border-radius: var(--radius-sm);
+  border-radius: 4px;
   font-size: 0.78rem;
   font-weight: 600;
-  color: var(--text-secondary);
-  transition: all var(--duration-fast);
+  color: var(--text-secondary, #999);
+  transition: all 0.15s ease;
 }
 
 .speed-option:hover {
-  background: var(--bg-glass);
-  color: var(--text-primary);
+  background: rgba(255, 255, 255, 0.06);
+  color: #fff;
 }
 
 .speed-option.active {
-  background: var(--accent-primary-dim);
-  color: var(--accent-primary);
+  background: rgba(0, 212, 255, 0.15);
+  color: var(--accent-primary, #00D4FF);
   font-weight: 700;
 }
 
-/* ── Resume Prompt ─────────────────────────────────────────── */
-.resume-prompt {
-  position: absolute;
-  top: 50%;
-  left: 50%;
-  transform: translate(-50%, -50%);
-  z-index: 10;
-  animation: fadeIn var(--duration-normal) var(--ease-out);
-}
-
-.resume-prompt-content {
-  background: rgba(18, 18, 26, 0.92);
-  backdrop-filter: blur(12px);
-  border: 1px solid var(--border-subtle);
-  border-radius: var(--radius-lg);
-  padding: 24px 32px;
-  text-align: center;
-  display: flex;
-  flex-direction: column;
-  align-items: center;
-  gap: 8px;
-  box-shadow: var(--shadow-xl);
-}
-
-.resume-prompt-title {
-  font-size: 1rem;
-  font-weight: 600;
-  color: var(--text-primary);
-}
-
-.resume-prompt-actions {
-  display: flex;
-  gap: 10px;
-  margin-top: 4px;
-}
-
-/* ── Active button state ────────────────────────────────── */
-.player-btn-active {
-  color: var(--accent-primary) !important;
-  background: rgba(0, 212, 255, 0.15) !important;
-}
-
-/* ── Subtitle Picker ────────────────────────────────────── */
+/* ── Subtitle Picker ────────────────────────── */
 .subtitle-btn-wrapper {
   position: relative;
 }
@@ -310,14 +463,15 @@
   bottom: 44px;
   right: 0;
   width: 200px;
-  max-height: 280px;
+  max-height: 300px;
   overflow-y: auto;
   padding: 8px;
-  background: rgba(18, 18, 26, 0.96);
-  border: 1px solid var(--border-subtle);
-  border-radius: var(--radius-md);
-  box-shadow: var(--shadow-lg);
-  animation: fadeIn var(--duration-fast) var(--ease-out);
+  background: rgba(10, 10, 15, 0.95);
+  backdrop-filter: blur(16px);
+  border: 1px solid rgba(255, 255, 255, 0.08);
+  border-radius: 8px;
+  box-shadow: 0 16px 48px rgba(0, 0, 0, 0.6);
+  animation: fadeIn 0.15s ease;
 }
 
 .subtitle-picker-header {
@@ -325,26 +479,26 @@
   align-items: center;
   justify-content: space-between;
   padding: 4px 8px 10px;
-  border-bottom: 1px solid var(--border-subtle);
+  border-bottom: 1px solid rgba(255, 255, 255, 0.06);
   margin-bottom: 6px;
-  font-size: 0.82rem;
+  font-size: 0.8rem;
   font-weight: 600;
-  color: var(--text-primary);
+  color: var(--text-primary, #fff);
 }
 
 .subtitle-toggle {
   font-size: 0.7rem;
   font-weight: 600;
-  padding: 2px 10px;
+  padding: 2px 12px;
   border-radius: 100px;
-  background: var(--bg-glass);
-  color: var(--text-tertiary);
-  transition: all var(--duration-fast);
+  background: rgba(255, 255, 255, 0.06);
+  color: var(--text-tertiary, #666);
+  transition: all 0.15s ease;
 }
 
 .subtitle-toggle.active {
-  background: var(--accent-primary-dim);
-  color: var(--accent-primary);
+  background: rgba(0, 212, 255, 0.15);
+  color: var(--accent-primary, #00D4FF);
 }
 
 .subtitle-lang-list {
@@ -358,20 +512,20 @@
   width: 100%;
   text-align: left;
   padding: 7px 10px;
-  border-radius: var(--radius-sm);
+  border-radius: 4px;
   font-size: 0.78rem;
-  color: var(--text-secondary);
-  transition: all var(--duration-fast);
+  color: var(--text-secondary, #999);
+  transition: all 0.15s ease;
 }
 
 .subtitle-lang-option:hover {
-  background: var(--bg-glass);
-  color: var(--text-primary);
+  background: rgba(255, 255, 255, 0.06);
+  color: #fff;
 }
 
 .subtitle-lang-option.active {
-  background: var(--accent-primary-dim);
-  color: var(--accent-primary);
+  background: rgba(0, 212, 255, 0.15);
+  color: var(--accent-primary, #00D4FF);
   font-weight: 600;
 }
 
@@ -381,11 +535,47 @@
   gap: 8px;
   padding: 8px;
   justify-content: center;
-  color: var(--text-tertiary);
+  color: var(--text-tertiary, #666);
   font-size: 0.75rem;
 }
 
-/* ── Error State ────────────────────────────────────────── */
+/* ── Resume Prompt ──────────────────────────── */
+.resume-prompt {
+  position: absolute;
+  top: 50%;
+  left: 50%;
+  transform: translate(-50%, -50%);
+  z-index: 10;
+  animation: fadeIn 0.25s ease;
+}
+
+.resume-prompt-content {
+  background: rgba(10, 10, 15, 0.9);
+  backdrop-filter: blur(12px);
+  border: 1px solid rgba(255, 255, 255, 0.08);
+  border-radius: 12px;
+  padding: 28px 36px;
+  text-align: center;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 8px;
+  box-shadow: 0 24px 64px rgba(0, 0, 0, 0.6);
+}
+
+.resume-prompt-title {
+  font-size: 1.05rem;
+  font-weight: 600;
+  color: var(--text-primary, #fff);
+}
+
+.resume-prompt-actions {
+  display: flex;
+  gap: 12px;
+  margin-top: 8px;
+}
+
+/* ── Error State ────────────────────────────── */
 .player-error-state {
   display: flex;
   align-items: center;
@@ -394,12 +584,13 @@
 
 .player-error-inner {
   text-align: center;
-  color: var(--text-secondary);
+  color: var(--text-secondary, #999);
+  max-width: 400px;
 }
 
 .player-error-inner p:first-child {
-  font-size: 1.1rem;
-  color: var(--text-primary);
+  font-size: 1.2rem;
+  color: var(--text-primary, #fff);
   margin-bottom: 8px;
 }
 
@@ -407,10 +598,10 @@
   display: flex;
   gap: 12px;
   justify-content: center;
-  margin-top: 20px;
+  margin-top: 24px;
 }
 
-/* ── Empty State ────────────────────────────────────────── */
+/* ── Empty State ────────────────────────────── */
 .player-empty {
   display: flex;
   flex-direction: column;
@@ -418,5 +609,34 @@
   justify-content: center;
   min-height: 100vh;
   gap: 16px;
-  color: var(--text-secondary);
+  color: var(--text-secondary, #999);
+  background: var(--bg-primary, #0A0A0F);
+}
+
+/* ── Animations ─────────────────────────────── */
+@keyframes fadeIn {
+  from { opacity: 0; transform: translateY(4px); }
+  to   { opacity: 1; transform: translateY(0); }
+}
+
+/* ── Subtitle text styling (native <track>) ─── */
+::cue {
+  background: rgba(0, 0, 0, 0.6);
+  color: #fff;
+  font-family: inherit;
+  font-size: 1.1rem;
+  line-height: 1.4;
+  text-shadow: 0 1px 4px rgba(0,0,0,0.6);
+}
+
+/* ── Scrollbar for pickers ──────────────────── */
+.subtitle-picker::-webkit-scrollbar,
+.speed-picker::-webkit-scrollbar {
+  width: 4px;
+}
+
+.subtitle-picker::-webkit-scrollbar-thumb,
+.speed-picker::-webkit-scrollbar-thumb {
+  background: rgba(255,255,255,0.15);
+  border-radius: 2px;
 }

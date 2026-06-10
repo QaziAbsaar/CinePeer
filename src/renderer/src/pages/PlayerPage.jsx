@@ -1,5 +1,5 @@
 import { useState, useEffect, useRef, useCallback } from 'react'
-import { ArrowLeft, Play, Pause, Volume2, VolumeX, Maximize, Minimize, SkipBack, SkipForward, Subtitles, RefreshCw } from 'lucide-react'
+import { ArrowLeft, Play, Pause, Volume2, VolumeX, Maximize, Minimize, SkipBack, SkipForward, Subtitles, RefreshCw, PictureInPicture2 } from 'lucide-react'
 import { useNavigate } from 'react-router-dom'
 import useTorrentStore from '../store/useTorrentStore'
 import useAppStore from '../store/useAppStore'
@@ -23,7 +23,7 @@ const SUBTITLE_LANGUAGES = [
   { code: 'hi', label: 'Hindi' }
 ]
 
-// Playback speed options
+// Playback speed options (Prime Video range: 0.75–2.0)
 const SPEED_OPTIONS = [0.25, 0.5, 0.75, 1, 1.25, 1.5, 2, 3]
 
 // Module-level track URL for cleanup
@@ -36,6 +36,7 @@ export default function PlayerPage() {
   const videoRef = useRef(null)
   const containerRef = useRef(null)
   const progressRef = useRef(null)
+  const progressWrapRef = useRef(null)
   const hideTimerRef = useRef(null)
   const wakeLockRef = useRef(null)
   const mountedRef = useRef(true)
@@ -56,6 +57,9 @@ export default function PlayerPage() {
   const [playbackSpeed, setPlaybackSpeed] = useState(1)
   const [showSpeedPicker, setShowSpeedPicker] = useState(false)
   const [resumePosition, setResumePosition] = useState(null)
+  const [hoverTime, setHoverTime] = useState(null)
+  const [hoverX, setHoverX] = useState(0)
+  const [isPip, setIsPip] = useState(false)
 
   // ── Continue watching: save/restore position ────────────────
   const RESUME_KEY = currentStream?.infoHash ? `sv_resume_${currentStream.infoHash}` : null
@@ -63,7 +67,7 @@ export default function PlayerPage() {
   const savePosition = useCallback(() => {
     if (!RESUME_KEY || !videoRef.current || !duration) return
     const pos = videoRef.current.currentTime
-    if (pos < 5) return // Don't save near start
+    if (pos < 5) return
     try {
       localStorage.setItem(RESUME_KEY, JSON.stringify({
         position: pos,
@@ -81,7 +85,6 @@ export default function PlayerPage() {
       const saved = localStorage.getItem(RESUME_KEY)
       if (saved) {
         const data = JSON.parse(saved)
-        // Show resume prompt if position > 10s and not near end
         if (data.position > 10 && data.position / data.duration < 0.95) {
           setResumePosition(data.position)
         }
@@ -89,7 +92,7 @@ export default function PlayerPage() {
     } catch {}
   }, [RESUME_KEY, currentStream])
 
-  // Save position periodically and on time update
+  // Save position periodically
   const saveTimerRef = useRef(null)
   useEffect(() => {
     if (!isPlaying || !RESUME_KEY) return
@@ -97,7 +100,6 @@ export default function PlayerPage() {
     return () => clearInterval(saveTimerRef.current)
   }, [isPlaying, RESUME_KEY, savePosition])
 
-  // Save position on pause
   const handlePause = useCallback(() => {
     setIsPlaying(false)
     savePosition()
@@ -137,12 +139,10 @@ export default function PlayerPage() {
   useEffect(() => {
     return () => {
       mountedRef.current = false
-      // Release wake lock
       if (wakeLockRef.current) {
         wakeLockRef.current.release().catch(() => {})
         wakeLockRef.current = null
       }
-      // Revoke subtitle blob URL
       if (_trackUrl) {
         URL.revokeObjectURL(_trackUrl)
         _trackUrl = null
@@ -154,7 +154,6 @@ export default function PlayerPage() {
   useEffect(() => {
     if (!isPlaying) return
     let cancelled = false
-
     const requestWakeLock = async () => {
       try {
         if ('wakeLock' in navigator) {
@@ -162,13 +161,9 @@ export default function PlayerPage() {
           if (!cancelled) wakeLockRef.current = lock
           else lock.release().catch(() => {})
         }
-      } catch {
-        // Wake lock not supported or denied
-      }
+      } catch {}
     }
-
     requestWakeLock()
-
     return () => {
       cancelled = true
       if (wakeLockRef.current) {
@@ -190,11 +185,9 @@ export default function PlayerPage() {
   // ── Auto-fetch subtitles when stream starts ────────────────
   useEffect(() => {
     if (!currentStream || !opensubtitlesApiKey || !currentStream.infoHash) return
-
     const fetchSubtitles = async () => {
       const imdbId = currentStream.imdb_id || currentStream.mediaInfo?.imdb_id
       if (!imdbId) return
-
       const mediaType = currentStream?.mediaType
       setSubtitleLoading(true)
       try {
@@ -207,12 +200,10 @@ export default function PlayerPage() {
             if (webvtt && mountedRef.current) {
               if (_trackUrl) URL.revokeObjectURL(_trackUrl)
               _trackUrl = webVttToDataUri(webvtt)
-
               const video = videoRef.current
               if (video) {
                 const oldTrack = video.querySelector('track')
                 if (oldTrack) oldTrack.remove()
-
                 const track = document.createElement('track')
                 track.kind = 'subtitles'
                 track.label = subs[0].attributes?.language || 'English'
@@ -230,7 +221,6 @@ export default function PlayerPage() {
         if (mountedRef.current) setSubtitleLoading(false)
       }
     }
-
     fetchSubtitles()
   }, [currentStream, opensubtitlesApiKey])
 
@@ -239,7 +229,6 @@ export default function PlayerPage() {
     setSubtitleLanguage(langCode)
     setShowSubtitlePicker(false)
     if (!currentStream?.imdb_id && !currentStream?.mediaInfo?.imdb_id) return
-
     setSubtitleLoading(true)
     try {
       const imdbId = currentStream.imdb_id || currentStream.mediaInfo?.imdb_id
@@ -253,12 +242,10 @@ export default function PlayerPage() {
           if (webvtt) {
             if (_trackUrl) URL.revokeObjectURL(_trackUrl)
             _trackUrl = webVttToDataUri(webvtt)
-
             const video = videoRef.current
             if (video) {
               const oldTrack = video.querySelector('track')
               if (oldTrack) oldTrack.remove()
-
               const track = document.createElement('track')
               track.kind = 'subtitles'
               track.label = subs[0].attributes?.language || langCode
@@ -315,6 +302,7 @@ export default function PlayerPage() {
       hideTimerRef.current = setTimeout(() => {
         setShowControls(false)
         setShowSubtitlePicker(false)
+        setShowSpeedPicker(false)
       }, 3000)
     }
   }, [isPlaying])
@@ -324,7 +312,6 @@ export default function PlayerPage() {
     const handleKey = (e) => {
       const video = videoRef.current
       if (!video) return
-
       switch (e.key) {
         case ' ':
         case 'k':
@@ -383,11 +370,11 @@ export default function PlayerPage() {
       }
       resetHideTimer()
     }
-
     window.addEventListener('keydown', handleKey)
     return () => window.removeEventListener('keydown', handleKey)
   }, [duration, isFullscreen, navigate, resetHideTimer, toggleCC, resumePosition])
 
+  // ── Fullscreen ──────────────────────────────────────────────
   const toggleFullscreen = () => {
     const el = containerRef.current
     if (!el) return
@@ -404,12 +391,48 @@ export default function PlayerPage() {
     return () => document.removeEventListener('fullscreenchange', handler)
   }, [])
 
+  // ── Picture-in-Picture ──────────────────────────────────────
+  const togglePip = useCallback(async () => {
+    const video = videoRef.current
+    if (!video) return
+    try {
+      if (document.pictureInPictureElement) {
+        await document.exitPictureInPicture()
+        setIsPip(false)
+      } else {
+        await video.requestPictureInPicture()
+        setIsPip(true)
+      }
+    } catch (err) {
+      console.warn('PiP not supported or denied:', err)
+    }
+  }, [])
+
+  useEffect(() => {
+    const handler = () => setIsPip(!!document.pictureInPictureElement)
+    document.addEventListener('enterpictureinpicture', handler)
+    document.addEventListener('leavepictureinpicture', handler)
+    return () => {
+      document.removeEventListener('enterpictureinpicture', handler)
+      document.removeEventListener('leavepictureinpicture', handler)
+    }
+  }, [])
+
+  // ── Progress bar interaction ────────────────────────────────
   const handleProgressClick = (e) => {
-    const rect = progressRef.current.getBoundingClientRect()
+    const rect = progressWrapRef.current.getBoundingClientRect()
     const percent = (e.clientX - rect.left) / rect.width
     if (videoRef.current) {
       videoRef.current.currentTime = percent * duration
     }
+  }
+
+  const handleProgressHover = (e) => {
+    const rect = progressWrapRef.current.getBoundingClientRect()
+    const x = e.clientX - rect.left
+    const percent = x / rect.width
+    setHoverX(e.clientX - rect.left)
+    setHoverTime(percent * duration)
   }
 
   const formatTime = (seconds) => {
@@ -421,12 +444,23 @@ export default function PlayerPage() {
     return `${m}:${String(s).padStart(2, '0')}`
   }
 
+  const formatRemaining = (seconds) => {
+    if (!seconds || isNaN(seconds)) return '0:00'
+    const remaining = duration - seconds
+    const h = Math.floor(remaining / 3600)
+    const m = Math.floor((remaining % 3600) / 60)
+    const s = Math.floor(remaining % 60)
+    if (h > 0) return `-${h}:${String(m).padStart(2, '0')}:${String(s).padStart(2, '0')}`
+    return `-${m}:${String(s).padStart(2, '0')}`
+  }
+
   // ── Handle stream error ────────────────────────────────────
   const handleStreamError = () => {
     setStreamError(true)
     setBuffering(false)
   }
 
+  // ── Empty state ────────────────────────────────────────────
   if (!currentStream) {
     return (
       <div className="player-empty">
@@ -438,6 +472,7 @@ export default function PlayerPage() {
     )
   }
 
+  // ── Error state ────────────────────────────────────────────
   if (streamError) {
     return (
       <div className="player-container player-error-state">
@@ -457,6 +492,10 @@ export default function PlayerPage() {
     )
   }
 
+  // ── Player ─────────────────────────────────────────────────
+  const progressPercent = duration ? (currentTime / duration) * 100 : 0
+  const bufferedPercent = torrentInfo ? (torrentInfo.progress || 0) * 100 : 0
+
   return (
     <div
       ref={containerRef}
@@ -466,7 +505,7 @@ export default function PlayerPage() {
       onContextMenu={(e) => e.preventDefault()}
       id="player-page"
     >
-      {/* Video */}
+      {/* Video element */}
       <video
         ref={videoRef}
         className="player-video"
@@ -487,7 +526,7 @@ export default function PlayerPage() {
       {/* Buffering indicator */}
       {buffering && !streamError && (
         <div className="player-buffering">
-          <div className="spinner" style={{ width: 40, height: 40, borderWidth: 3 }} />
+          <div className="spinner" />
           <span>Buffering...</span>
         </div>
       )}
@@ -514,88 +553,123 @@ export default function PlayerPage() {
       <div className={`player-controls ${showControls ? 'visible' : ''}`}>
         {/* Top bar */}
         <div className="player-top-bar">
-          <button className="btn-icon" onClick={() => navigate(-1)}>
+          <button className="player-back-btn" onClick={() => navigate(-1)}>
             <ArrowLeft size={22} />
           </button>
           <span className="player-title truncate">{currentStream.title}</span>
         </div>
 
-        {/* Center play/pause */}
+        {/* Center play/pause — large overlay button */}
         <div className="player-center">
-          <button className="player-center-btn" onClick={() => {
+          <button className="player-center-btn" onClick={(e) => {
+            e.stopPropagation()
             videoRef.current?.paused ? videoRef.current.play() : videoRef.current.pause()
           }}>
-            {isPlaying ? <Pause size={48} fill="white" /> : <Play size={48} fill="white" />}
+            {isPlaying ? <Pause size={36} fill="white" /> : <Play size={36} fill="white" style={{ marginLeft: 4 }} />}
           </button>
         </div>
 
         {/* Bottom bar */}
         <div className="player-bottom-bar">
-          {/* Progress */}
+          {/* Progress bar with hover tooltip */}
           <div
-            className="player-progress"
-            ref={progressRef}
+            className="player-progress-wrap"
+            ref={progressWrapRef}
             onClick={handleProgressClick}
+            onMouseMove={handleProgressHover}
+            onMouseLeave={() => setHoverTime(null)}
           >
-            <div
-              className="player-progress-fill"
-              style={{ width: duration ? `${(currentTime / duration) * 100}%` : '0%' }}
-            />
-            {torrentInfo && (
+            <div className="player-progress" ref={progressRef}>
+              {/* Buffered */}
               <div
                 className="player-progress-buffered"
-                style={{ width: `${(torrentInfo.progress || 0) * 100}%` }}
+                style={{ width: `${bufferedPercent}%` }}
               />
+              {/* Played */}
+              <div
+                className="player-progress-fill"
+                style={{ width: `${progressPercent}%` }}
+              />
+              {/* Scrubber thumb */}
+              {progressPercent > 0 && (
+                <div
+                  className="player-progress-thumb"
+                  style={{ left: `${progressPercent}%` }}
+                />
+              )}
+            </div>
+            {/* Hover time tooltip */}
+            {hoverTime !== null && (
+              <div
+                className="player-progress-tooltip"
+                style={{ left: `${hoverX}px` }}
+              >
+                {formatTime(hoverTime)}
+              </div>
             )}
           </div>
 
+          {/* Controls row */}
           <div className="player-bottom-actions">
             <div className="player-left-actions">
-              <button className="player-btn" onClick={() => {
+              {/* Play/Pause */}
+              <button className="player-btn player-play-btn" onClick={(e) => {
+                e.stopPropagation()
                 videoRef.current?.paused ? videoRef.current.play() : videoRef.current.pause()
               }}>
-                {isPlaying ? <Pause size={20} /> : <Play size={20} />}
+                {isPlaying ? <Pause size={20} fill="white" /> : <Play size={20} fill="white" />}
               </button>
 
-              <button className="player-btn" onClick={() => {
+              {/* Skip back 10s */}
+              <button className="player-btn" onClick={(e) => {
+                e.stopPropagation()
                 if (videoRef.current) videoRef.current.currentTime -= 10
               }}>
                 <SkipBack size={18} />
               </button>
-              <button className="player-btn" onClick={() => {
+
+              {/* Skip forward 10s */}
+              <button className="player-btn" onClick={(e) => {
+                e.stopPropagation()
                 if (videoRef.current) videoRef.current.currentTime += 10
               }}>
                 <SkipForward size={18} />
               </button>
 
-              <button className="player-btn" onClick={() => {
-                const v = videoRef.current
-                if (v) { v.muted = !v.muted; setIsMuted(v.muted) }
-              }}>
-                {isMuted ? <VolumeX size={20} /> : <Volume2 size={20} />}
-              </button>
+              {/* Volume */}
+              <div className="player-volume-wrap">
+                <button className="player-btn" onClick={(e) => {
+                  e.stopPropagation()
+                  const v = videoRef.current
+                  if (v) { v.muted = !v.muted; setIsMuted(v.muted) }
+                }}>
+                  {isMuted || volume === 0 ? <VolumeX size={20} /> : <Volume2 size={20} />}
+                </button>
+                <input
+                  type="range"
+                  className="volume-slider"
+                  min="0"
+                  max="1"
+                  step="0.05"
+                  value={isMuted ? 0 : volume}
+                  onChange={(e) => {
+                    const v = parseFloat(e.target.value)
+                    setVolume(v)
+                    if (videoRef.current) videoRef.current.volume = v
+                    setIsMuted(v === 0)
+                  }}
+                  onClick={(e) => e.stopPropagation()}
+                />
+              </div>
 
-              <input
-                type="range"
-                className="volume-slider"
-                min="0"
-                max="1"
-                step="0.05"
-                value={isMuted ? 0 : volume}
-                onChange={(e) => {
-                  const v = parseFloat(e.target.value)
-                  setVolume(v)
-                  if (videoRef.current) videoRef.current.volume = v
-                  setIsMuted(v === 0)
-                }}
-              />
-
+              {/* Time display - elapsed / remaining (Prime style) */}
               <span className="player-time">
-                {formatTime(currentTime)} / {formatTime(duration)}
+                {formatTime(currentTime)} / {formatRemaining(currentTime)}
               </span>
             </div>
 
             <div className="player-right-actions">
+              {/* Torrent download info */}
               {torrentInfo && (
                 <span className="player-download-info">
                   {torrentInfo.downloadSpeed > 0 && `↓ ${formatSpeed(torrentInfo.downloadSpeed)}`}
@@ -606,7 +680,7 @@ export default function PlayerPage() {
                 </span>
               )}
 
-              {/* Subtitle button */}
+              {/* Subtitles */}
               {opensubtitlesApiKey && (
                 <div className="subtitle-btn-wrapper">
                   <button
@@ -614,13 +688,14 @@ export default function PlayerPage() {
                     onClick={(e) => {
                       e.stopPropagation()
                       setShowSubtitlePicker(!showSubtitlePicker)
+                      setShowSpeedPicker(false)
                     }}
                     title={showCC ? 'Subtitles on' : 'Subtitles off'}
                   >
                     <Subtitles size={20} />
                   </button>
                   {showSubtitlePicker && (
-                    <div className="subtitle-picker glass-card" onClick={(e) => e.stopPropagation()}>
+                    <div className="subtitle-picker" onClick={(e) => e.stopPropagation()}>
                       <div className="subtitle-picker-header">
                         <span>Subtitles</span>
                         <button className={`subtitle-toggle ${showCC ? 'active' : ''}`} onClick={toggleCC}>
@@ -649,20 +724,21 @@ export default function PlayerPage() {
                 </div>
               )}
 
-              {/* Speed button */}
+              {/* Speed */}
               <div className="speed-btn-wrapper">
                 <button
-                  className={`player-btn speed-btn ${playbackSpeed !== 1 ? 'player-btn-active' : ''}`}
+                  className={`player-btn ${playbackSpeed !== 1 ? 'player-btn-active' : ''}`}
                   onClick={(e) => {
                     e.stopPropagation()
                     setShowSpeedPicker(!showSpeedPicker)
+                    setShowSubtitlePicker(false)
                   }}
                   title={`Speed: ${playbackSpeed}x`}
                 >
                   <span className="speed-label">{playbackSpeed}x</span>
                 </button>
                 {showSpeedPicker && (
-                  <div className="speed-picker glass-card" onClick={(e) => e.stopPropagation()}>
+                  <div className="speed-picker" onClick={(e) => e.stopPropagation()}>
                     <div className="speed-picker-header">
                       <span>Speed</span>
                     </div>
@@ -681,7 +757,23 @@ export default function PlayerPage() {
                 )}
               </div>
 
-              <button className="player-btn" onClick={toggleFullscreen}>
+              {/* Picture-in-Picture */}
+              <button
+                className={`player-btn ${isPip ? 'player-btn-active' : ''}`}
+                onClick={(e) => {
+                  e.stopPropagation()
+                  togglePip()
+                }}
+                title="Picture-in-Picture"
+              >
+                <PictureInPicture2 size={18} />
+              </button>
+
+              {/* Fullscreen */}
+              <button className="player-btn" onClick={(e) => {
+                e.stopPropagation()
+                toggleFullscreen()
+              }}>
                 {isFullscreen ? <Minimize size={20} /> : <Maximize size={20} />}
               </button>
             </div>
