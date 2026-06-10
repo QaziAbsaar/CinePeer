@@ -500,7 +500,11 @@ export default function PlayerPage() {
     <div
       ref={containerRef}
       className={`player-container ${showControls ? '' : 'controls-hidden'}`}
-      onMouseMove={resetHideTimer}
+      onMouseMove={(e) => {
+        // Ignore zero-movement events (common in fullscreen playback)
+        if (e.movementX === 0 && e.movementY === 0) return
+        resetHideTimer()
+      }}
       onClick={resetHideTimer}
       onContextMenu={(e) => e.preventDefault()}
       id="player-page"
