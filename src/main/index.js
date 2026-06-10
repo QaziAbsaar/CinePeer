@@ -155,6 +155,7 @@ function createWindow() {
     minWidth: 1024,
     minHeight: 680,
     backgroundColor: '#0F0F0F',
+    icon: path.join(app.getAppPath(), 'public', 'icon.png'),
     frame: false,
     titleBarStyle: 'hidden',
     webPreferences: {
