@@ -101,12 +101,19 @@ export default function TVEpisodesPage() {
 
     setStreamingHash(torrent.hash || 'loading')
     try {
+      // Destroy previous torrent before starting new one
+      const { currentStream, removeTorrent } = useTorrentStore.getState()
+      if (currentStream?.infoHash) {
+        removeTorrent(currentStream.infoHash).catch(() => {})
+      }
+
       const title = details?.name || details?.title || 'Unknown'
       await addTorrent(magnetUrl, title, {
         posterPath: details?.poster_path,
         mediaId: details?.id,
         mediaType: 'tv'
       })
+      setStreamingHash(null)
       navigate('/player')
     } catch (err) {
       console.error('Failed to start stream:', err)

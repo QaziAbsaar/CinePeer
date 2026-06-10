@@ -125,6 +125,11 @@ export default function DetailModal() {
     })
   }, [])
 
+  // Reset streaming hash when modal opens for a new item
+  useEffect(() => {
+    if (selectedMedia) setStreamingHash(null)
+  }, [selectedMedia])
+
   // Close on Escape
   useEffect(() => {
     const handleKeyDown = (e) => {
@@ -150,12 +155,19 @@ export default function DetailModal() {
 
     setStreamingHash(torrent.hash || 'loading')
     try {
+      // Destroy previous torrent before starting new one, if any
+      const { currentStream, removeTorrent } = useTorrentStore.getState()
+      if (currentStream?.infoHash) {
+        removeTorrent(currentStream.infoHash).catch(() => {})
+      }
+
       const title = details?.title || details?.name || 'Unknown'
       await addTorrent(magnetUrl, title, {
         posterPath: details?.poster_path,
         mediaId: details?.id,
         mediaType: selectedMediaType
       })
+      setStreamingHash(null)
       clearSelectedMedia()
       navigate('/player')
     } catch (err) {
